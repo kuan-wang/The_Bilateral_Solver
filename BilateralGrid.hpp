@@ -4,14 +4,14 @@
 #include "ICCG.hpp"
 
 //for depthsuperresolution
-// #define SIGMA (7)
+// #define SIGMA (15)
 // #define BLUR_RADIUS (2)
-// #define WEIGHT_CENTER (5)
+// #define WEIGHT_CENTER (1.5)
 // #define WEIGHT_NEIGHBOR (2)
 
 //for Colorization
-#define SIGMA (5)
-#define BLUR_RADIUS (1)
+#define SIGMA (15)
+#define BLUR_RADIUS (2)
 #define WEIGHT_CENTER (6)
 #define WEIGHT_NEIGHBOR (1)
 

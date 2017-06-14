@@ -518,7 +518,7 @@ int main(int argc, char const *argv[]) {
     now = clock();
     printf( "now is %f seconds\n", (double)(now) / CLOCKS_PER_SEC);
 	// bilateral(im,8.0,4.0);
-	bilateral(im,16.0,8.0);
+	bilateral(im,64.0,32.0);
     finish = clock();
     duration = (double)(finish - start) / CLOCKS_PER_SEC;
     printf( "%f seconds\n", duration );
