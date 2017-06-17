@@ -483,8 +483,8 @@ void bilateral(cv::Mat& im, float spatialSigma, float colorSigma) {
 
 int main(int argc, char const *argv[]) {
     std::cout << "hello opencv" << '\n';
-    cv::Mat im = cv::imread("target.png");
-    cv::Mat im1 = cv::imread("target.png");
+    cv::Mat im = cv::imread("flower8.jpg");
+    cv::Mat im1 = cv::imread("flower8.jpg");
     std::cout << "im:" << im.cols<<"x"<< im.rows<< std::endl;
     // cv::imshow("im",im);
     // cv::waitKey(1000);
@@ -523,9 +523,9 @@ int main(int argc, char const *argv[]) {
     duration = (double)(finish - start) / CLOCKS_PER_SEC;
     printf( "%f seconds\n", duration );
 	cv::Mat im2 = 2*(im1-im);
-	cv::imshow("im",im);
-	cv::imshow("im1",im1);
-	cv::imshow("im2",im2);
+	cv::imshow("output",im);
+	cv::imshow("input",im1);
+	cv::imshow("difference",im2);
 	cv::waitKey(0);
 
     return 0;
