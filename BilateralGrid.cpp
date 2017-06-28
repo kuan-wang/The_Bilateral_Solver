@@ -17,8 +17,12 @@ note	:
 *****************************************************/
 BilateralGrid::BilateralGrid(Mat3f mat_image)
 {
-	mat_input = get_Ych(mat_image);
-	mat_output = mat_input.clone();
+	std::cout << "mat_image"<< mat_image.col(1) << std::endl;
+	mat_inputY = get_Ych(mat_image);
+	mat_inputU = get_Uch(mat_image);
+	mat_inputV = get_Vch(mat_image);
+	// std::cout << "mat_inputU"<< mat_inputU << std::endl;
+	mat_output = mat_inputY.clone();
 }
 
 /****************************************************
@@ -275,7 +279,15 @@ void BilateralGrid::construct_BlurMatrix()
 		{
 			for(k=j+1; k<p_table->count; k++)
 			{
-				if(abs(p_table->data[j] - p_table->data[k]) < BLUR_RADIUS+1)
+				int Ydiff = abs(((p_table->data[j]/51)/51)%51 - ((p_table->data[k]/51)/51)%51);
+				int Udiff = abs((p_table->data[j]/51)%51 - (p_table->data[k]/51)%51);
+				int Vdiff = abs(p_table->data[j]%51 - p_table->data[k]%51);
+
+				// std::cout << "YUV diff:"<< Ydiff << " "<<Udiff<<" "<<Vdiff << std::endl;
+
+
+				// if(Ydiff < BLUR_RADIUS+1)
+				if(Ydiff + Udiff + Vdiff < BLUR_RADIUS+1)
 				{
 					tmp_sum1 = p_table->sum + j;
 					tmp_sum2 = p_table->sum + k;
@@ -345,7 +357,7 @@ void BilateralGrid::execute_Filter()
 	}
 
 	//Splat :sum the units in  gird
-	y_pix = mat_input.ptr<float>(0, 0);
+	y_pix = mat_inputY.ptr<float>(0, 0);
 	p_splat = splat_matrix;
 	for(i=0; i<img_size; i++)
 	{
@@ -389,7 +401,7 @@ void BilateralGrid::show_Image(int num)
 	switch(num)
 	{
 		case BG_INPUT:
-			imshow("input", mat_input);
+			imshow("input", mat_inputY);
 			break;
 		case BG_OUTPUT:
 			imshow("output", mat_color);
@@ -455,13 +467,13 @@ void BilateralGrid::construct_SliceMatrix()
 
 	int comp;
 
-	img_rows = (int)mat_input.rows;
-	img_cols = (int)mat_input.cols;
+	img_rows = (int)mat_inputY.rows;
+	img_cols = (int)mat_inputY.cols;
 	img_size = img_rows * img_cols;
 	bg_step = (img_cols + SIGMA/2) / SIGMA;
 	tbl_size = (bg_step) *(1 + (img_rows + SIGMA/2)/SIGMA) + 1;
 
-	y_pix = mat_input.ptr<float>(0, 0);
+	y_pix = mat_inputY.ptr<float>(0, 0);
 
 	tmp_splat = new st_index [img_size];
 	splat_matrix = new st_splat[img_size];
@@ -533,6 +545,119 @@ void BilateralGrid::construct_SliceMatrix()
 }
 
 
+void BilateralGrid::construct_SliceMatrix_for_depth()
+{
+	int i, j, k;
+	int bg_index;
+	int bg_sum;
+	int bg_i;
+	int bg_j;
+	int i_up;
+	int j_up;
+	float *y_pix;
+	float *u_pix;
+	float *v_pix;
+	int sigma_2 = SIGMA*SIGMA;
+
+	int index=0;
+	st_index * tmp_splat;
+	st_index * p_tmp;
+	st_splat * p_splat;
+
+	int comp;
+	int compY;
+	int compU;
+	int compV;
+
+	img_rows = (int)mat_inputY.rows;
+	img_cols = (int)mat_inputY.cols;
+	img_size = img_rows * img_cols;
+	bg_step = (img_cols + SIGMA/2) / SIGMA;
+	tbl_size = (bg_step) *(1 + (img_rows + SIGMA/2)/SIGMA) + 1;
+
+	y_pix = mat_inputY.ptr<float>(0, 0);
+	u_pix = mat_inputU.ptr<float>(0, 0);
+	v_pix = mat_inputV.ptr<float>(0, 0);
+
+	tmp_splat = new st_index [img_size];
+	splat_matrix = new st_splat[img_size];
+	table = new st_table [tbl_size];
+	p_tmp = tmp_splat;
+	p_splat = splat_matrix;
+	/*初期化*/
+	for(i=0; i<tbl_size; i++)
+	{
+		table[i].count = 0;
+	}
+
+	for(i=0, i_up=SIGMA/2; i<img_rows; i++, i_up++)
+	{
+		bg_i = i_up/SIGMA;
+
+		for(j=0, j_up=SIGMA/2; j<img_cols; j++, j_up++)
+		{
+			bg_j = j_up/SIGMA;
+
+			bg_index = bg_i*bg_step + bg_j;
+			compY = (*y_pix * 255)/SIGMA;
+			compU = (*u_pix * 255)/SIGMA;
+			compV = (*v_pix * 255)/SIGMA;
+			comp = compY+compU+compV;
+			// comp = (compY*51+compU)*51+compV;
+
+			// comp = ((*y_pix + *u_pix + *v_pix) * 255)/SIGMA;
+			//y方向の大きさを考慮
+			for(k=0; k<table[bg_index].count; k++)
+			{
+				if(table[bg_index].data[k] == comp)
+				{
+					break;
+				}
+			}
+			if(k == table[bg_index].count)
+			{
+				table[bg_index].count++;
+				table[bg_index].data[k] = comp;
+			}
+			p_tmp->row_index = k;
+			p_tmp->col_index = bg_index;
+
+			p_tmp++;
+			index++;
+			y_pix++;
+			u_pix++;
+			v_pix++;
+		}
+	}
+
+	bg_sum = 0;
+	table[0].sum = 0;
+	for(i=0; i<tbl_size-1; i++)
+	{
+		table[i+1].sum = table[i].sum + table[i].count;
+	}
+	bg_size = table[tbl_size-1].sum + table[tbl_size-1].count; //gridの合計
+
+	p_tmp = tmp_splat;
+	p_splat = splat_matrix;
+	for(i=0; i<img_rows; i++)
+	{
+		for(j=0; j<img_cols; j++)
+		{
+			p_splat->col = j;
+			p_splat->row = i;
+			p_splat->bright = table[p_tmp->col_index].data[p_tmp->row_index];
+			p_splat->bg_index = table[p_tmp->col_index].sum + p_tmp->row_index;
+			p_tmp++;
+			p_splat++;
+		}
+
+	}
+	delete tmp_splat;
+}
+
+
+
 /****************************************************
 brief	: ユーザが着色した画像からYchを取得する
 note	:
@@ -557,6 +682,49 @@ Mat1f BilateralGrid::get_Ych(Mat3f yuv)
 	}
 	return ret;
 }
+
+Mat1f BilateralGrid::get_Uch(Mat3f yuv)
+{
+	int y, x, c;
+	Mat1f ret(yuv.rows, yuv.cols, CV_32FC1);
+	float *yuv_pix;
+	float *ret_pix;
+	yuv_pix = yuv.ptr<float>(0, 0) + 1;
+	ret_pix = ret.ptr<float>(0, 0);
+
+	for(y=0; y<yuv.rows; y++)
+	{
+		for(x=0; x<yuv.cols; x++)
+		{
+			*ret_pix = *yuv_pix;
+			yuv_pix += 3;
+			ret_pix ++;
+		}
+	}
+	return ret;
+}
+
+Mat1f BilateralGrid::get_Vch(Mat3f yuv)
+{
+	int y, x, c;
+	Mat1f ret(yuv.rows, yuv.cols, CV_32FC1);
+	float *yuv_pix;
+	float *ret_pix;
+	yuv_pix = yuv.ptr<float>(0, 0) + 2;
+	ret_pix = ret.ptr<float>(0, 0);
+
+	for(y=0; y<yuv.rows; y++)
+	{
+		for(x=0; x<yuv.cols; x++)
+		{
+			*ret_pix = *yuv_pix;
+			yuv_pix += 3;
+			ret_pix ++;
+		}
+	}
+	return ret;
+}
+
 
 /****************************************************
 brief	: 二重確率化処理
@@ -605,6 +773,7 @@ void BilateralGrid::calc_Bistochastic()
 			vect_denom[i] = WEIGHT_CENTER * vect_n[blur_matrix[i].index[0]];
 			for(j=1; j<blur_matrix[i].count; j++)
 			{
+				// std::cout << "get" <<blur_matrix[i].count<<" "<<j<< std::endl;
 				vect_denom[i] += vect_n[blur_matrix[i].index[j]];
 			}
 		}

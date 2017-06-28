@@ -42,6 +42,8 @@ struct st_splat
 	int col;
 	int row;
 	int bright;
+	int u;
+	int v;
 	int bg_index;
 };
 
@@ -76,6 +78,7 @@ class BilateralGrid
 		void set_DrawImage(Mat3f mat_draw_image);
 		void set_DepthImage(Mat1f mat_depth_image);
 		void construct_SliceMatrix(void);
+		void construct_SliceMatrix_for_depth(void);
 		void construct_BlurMatrix(void);
 		void construct_AMatrix_step1(void);
 		void construct_AMatrix_step2(void);
@@ -93,7 +96,11 @@ class BilateralGrid
 		str_CSR	convertCSR(st_A*);
 		str_CSR convertCSR();
 		Mat1f get_Ych(Mat3f);
-		Mat1f mat_input;
+		Mat1f get_Uch(Mat3f);
+		Mat1f get_Vch(Mat3f);
+		Mat1f mat_inputY;
+		Mat1f mat_inputU;
+		Mat1f mat_inputV;
 		Mat1f mat_output;
 		Mat1f mat_depth;
 		Mat1f mat_depthsuperresoluted;

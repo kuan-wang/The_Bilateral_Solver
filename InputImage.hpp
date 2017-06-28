@@ -25,6 +25,7 @@ class InputImage
 {
 	public:
 		InputImage(Mat1f mat_image);	//コンストラクた
+		InputImage(Mat3f mat_image);	//コンストラクた
 		Mat3f get_Image(int num);		//yuv画像のGetter
 		void draw_Image(void);			//ユーザのカラー指定
 		void show_Image(int num);		//デバック用の画像表示
