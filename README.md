@@ -8,7 +8,8 @@ ______________________
 
 [TOC]
 
-##Algorithm
+##Introduce
+###Algorithm
 We begin by presenting the objective and optimization techniques that make up our bilateral solver. Let us assume that we have some per-pixel input quantities **t** (the “target” value, see Figure 1a) and some per-pixel confidence of those quantities **c** (Figure 1c), both represented as vectorized images. Let us also assume that we have some “reference” image (Figure 1d), which is a normal RGB image. Our goal is to recover an “output” vector x (Figure 1b), which will resemble the input target where the confidence is large while being smooth and tightly aligned to edges in the reference image. We will accomplish this by constructing an optimization problem consisting of an image-dependent smoothness term that encourages **x** to be bilateral-smooth, and a data-fidelity term that minimizes the squared residual between x and the target **t** weighted by our confidence **c**:
 $$minimize\frac{\lambda}{2}\sum_{i,j}\widehat{W}_{i,j}(x_i-x_j)^{2}+\sum_{i}(c_i-t_i)^{2}  \quad  (1)$$
 The smoothness term in this optimization problem is built around an affinity matrix Ŵ , which is a bistochastized version of a bilateral affinity matrix **W** . Each element of the bilateral affinity matrix $W_{i,j}$ reflects the affinity between pixels i and j in the reference image in the YUV colorspace:
@@ -30,10 +31,73 @@ $$Ay = b\quad  (7)$$
 We can produce a pixel-space solution x̂ by simply slicing the solution to that linear system:
 $$\widehat{x} = S^T(A^{-1}b) \quad (8)$$
 With this we can describe our algorithm, which we will refer to as the “bilateral solver.” The input to the solver is a reference RGB image, a target image that contains noisy observed quantities which we wish to improve, and a confidence image. We construct a simplified bilateral grid from the reference image, which is bistochastized as in [2] (see the supplement for details), and with that we construct the A matrix and b vector described in Equation 6 which are used to solve the linear system in Equation 8 to produce an output image. If we have multiple target images (with the same reference and confidence images) then we can construct a larger linear system in which b has many columns, and solve for each channel simultaneously using the same A matrix. In this many-target case, if b is low rank then that property can be exploited to accelerate optimization, as we show in the supplement.
+###Implementation
+
+
+
+
+###Reference
+```
+@article{BarronPoole2016,
+author = {Jonathan T Barron and Ben Poole},
+title = {The Fast Bilateral Solver},
+journal = {ECCV},
+year = {2016},
+}
+@article{Barron2015A,
+author = {Jonathan T Barron and Andrew Adams and YiChang Shih and Carlos Hern\'andez},
+title = {Fast Bilateral-Space Stereo for Synthetic Defocus},
+journal = {CVPR},
+year = {2015},
+}
+@article{Adams2010,
+author = {Andrew Adams	Jongmin Baek	Abe Davis},
+title = {Fast High-Dimensional Filtering Using the Permutohedral Lattice},
+journal = {Eurographics},
+year = {2010},
+}
+```
 ##Installation Instructions
+### Build OpenCV
+This is just a suggestion on how to build OpenCV 3.1. There a plenty of options. Also some packages might be optional.
+```
+sudo apt-get install libgtk2.0-dev pkg-config libavcodec-dev libavformat-dev libswscale-dev python-dev python-numpy libtbb2 libtbb-dev libjpeg-dev libpng-dev libtiff-dev libjasper-dev libdc1394-22-dev
+git clone https://github.com/Itseez/opencv.git
+cd opencv
+mkdir build
+cd build
+cmake -D CMAKE_BUILD_TYPE=RELEASE -D WITH_CUDA=OFF ..
+make -j
+sudo make install
+```
 
+###Build The_Bilateral_Solver
+```
+git clone https://github.com/THUKey/The_Bilateral_Solver.git
+cd The_Bilateral_Solver/build
+cmake ..
+make
+```
+This will create three executable demos, that you can run as shown in below.
 
+####Depthsuperresolution
+```
+./Depthsuperres
+```
+![the result](https://raw.githubusercontent.com/THUKey/The_Bilateral_Solver/master/build/depthsuperresolution.png)
+####Colorization
+```
+./Colorize rose1.webp
+```
+![draw](https://raw.githubusercontent.com/THUKey/The_Bilateral_Solver/master/build/draw.png)
+![colorized](https://raw.githubusercontent.com/THUKey/The_Bilateral_Solver/master/build/colorized.png)
+####PermutohedralLatticeFilter
+```
+./Latticefilter
+```
+![lattice_result](https://raw.githubusercontent.com/THUKey/The_Bilateral_Solver/master/build/lattice_result.png)
 
 ##Basic Usage
+
 
 ##Schedule
