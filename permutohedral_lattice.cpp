@@ -483,8 +483,9 @@ void bilateral(cv::Mat& im, float spatialSigma, float colorSigma) {
 
 int main(int argc, char const *argv[]) {
     std::cout << "hello opencv" << '\n';
-    cv::Mat im = cv::imread("flower8.jpg");
-    cv::Mat im1 = cv::imread("flower8.jpg");
+    cv::Mat im = cv::imread(argv[1]);
+    cv::Mat im1 = cv::imread(argv[1]);
+    // cv::Mat im1 = cv::imread("flower8.jpg");
     std::cout << "im:" << im.cols<<"x"<< im.rows<< std::endl;
     // cv::imshow("im",im);
     // cv::waitKey(1000);
