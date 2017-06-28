@@ -40,33 +40,17 @@ int main(int argc, char **argv)
 
 	mat_in= imread(imgName_R, 1)/255;
 
-	//入力画像作成用のクラス
 	InputImage InImg(mat_in);
 	mat_bg_in = InImg.get_Image(IMG_YUV);
-
-	//初期セットアップ
-	BilateralGrid BiGr(mat_bg_in);
-	BiGr.construct_SliceMatrix();
-	BiGr.construct_BlurMatrix();
-	BiGr.calc_Bistochastic();
-	BiGr.construct_AMatrix_step1();
-	cout << "Bistochastic Fin" << endl;
-
-
-
 	InImg.draw_Image();
 	mat_bg_draw_in = InImg.get_Image(IMG_DRAWYUV);
-	cout << "process" << endl;
-	BiGr.set_DrawImage(mat_bg_draw_in);
-	cout << "construct_AMatrix_step2" << endl;
-	BiGr.construct_AMatrix_step2();
-	cout << "execute_ICCG" << endl;
-	BiGr.execute_ICCG(ICCG_LOOP_MAX, ICCG_EPS);
-	cout << "show_Image" << endl;
-	BiGr.show_Image(BG_COLORIZED);
+
+	BilateralGrid BiGr(mat_bg_in);
+
+	BiGr.Colorization(mat_in,mat_bg_draw_in);
 
 	imwrite("draw.png" , InImg.get_Image(IMG_DRAW)*255);
-	imwrite("colorized.png" , BiGr.get_Image(BG_COLORIZED)*255);
+
 
 
 

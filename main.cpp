@@ -5,8 +5,6 @@
 #include "InputImage.hpp"
 #include "BilateralGrid.hpp"
 
-#define ICCG_LOOP_MAX	(200)
-#define ICCG_EPS		(0.01)
 
 using namespace cv;
 using namespace std;

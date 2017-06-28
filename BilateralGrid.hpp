@@ -3,13 +3,27 @@
 #include <iostream>
 #include "ICCG.hpp"
 
+//for depthsuperresolution
+// #define SIGMA (7)
+// #define BLUR_RADIUS (2)
+// #define WEIGHT_CENTER (5)
+// #define WEIGHT_NEIGHBOR (2)
+
+//for Colorization
 #define SIGMA (5)
 #define BLUR_RADIUS (1)
 #define WEIGHT_CENTER (6)
 #define WEIGHT_NEIGHBOR (1)
+
 #define BISTOCHASTIC_LOOP_MAX (10)
 #define BISTOCHASTIC_THRE (0.001)
 #define LAMBDA (1.0)
+#define ICCG_LOOP_MAX	(200)
+#define ICCG_EPS		(0.01)
+
+
+
+
 
 using namespace cv;
 using namespace std;
@@ -67,14 +81,13 @@ struct st_A
 };
 
 
-/****************************************************
-brief	:	Bilateral Gridクラス
-note	:
-*****************************************************/
 class BilateralGrid
 {
 	public:
 		BilateralGrid(Mat3f mat_image);
+		void Depthsuperresolution(Mat3f mat_R,Mat1f mat_T,int sigma_spatial,int sigma_luma,int sigma_chroma);
+		void Colorization(Mat3f mat_in,Mat3f mat_bg_draw_in);
+		void PermutohedralLattice(Mat3f mat_in);
 		void set_DrawImage(Mat3f mat_draw_image);
 		void set_DepthImage(Mat1f mat_depth_image);
 		void construct_SliceMatrix(void);
@@ -132,4 +145,8 @@ class BilateralGrid
 		st_A * A_matrix_U;
 		st_A * A_matrix_V;
 		st_A * A_matrix_D;
+
+		int sigma_spatial;
+		int sigma_luma;
+		int sigma_chroma;
 };

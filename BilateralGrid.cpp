@@ -11,24 +11,75 @@
 using namespace cv;
 using namespace std;
 
-/****************************************************
-brief	: Bilateral Gridクラスコンストラクタ
-note	:
-*****************************************************/
 BilateralGrid::BilateralGrid(Mat3f mat_image)
 {
-	// std::cout << "mat_image"<< mat_image.col(1) << std::endl;
 	mat_inputY = get_Ych(mat_image);
 	mat_inputU = get_Uch(mat_image);
 	mat_inputV = get_Vch(mat_image);
-	// std::cout << "mat_inputU"<< mat_inputU << std::endl;
 	mat_output = mat_inputY.clone();
+
+	int sigma_spatial = SIGMA;
+	int sigma_luma = SIGMA;
+	int sigma_chroma = SIGMA;
+
 }
 
-/****************************************************
-brief	: 色を塗った画像をセットする
-note	:
-*****************************************************/
+
+void BilateralGrid::Depthsuperresolution(Mat3f mat_R,Mat1f mat_T,int sigma_sp,int sigma_lu,int sigma_ch)
+{
+	Mat3f mat_bg_in;
+	sigma_spatial = sigma_sp;
+ 	sigma_luma = sigma_lu;
+	sigma_chroma = sigma_ch;
+
+
+
+	BilateralGrid BiGr(mat_bg_in);
+	// BiGr.construct_SliceMatrix();
+	construct_SliceMatrix_for_depth();
+	construct_BlurMatrix();
+	calc_Bistochastic();
+	construct_AMatrix_step1();
+
+	cout << "process" << endl;
+	set_DepthImage(mat_T);
+	cout << "construct_AMatrix_step2" << endl;
+
+
+	construct_AMatrix_step2_for_depth();
+	cout << "execute_ICCG" << endl;
+
+
+	execute_ICCG_for_depth(ICCG_LOOP_MAX, ICCG_EPS);
+	cout << "show_Image" << endl;
+	show_Image(BG_DEPTHSUPERRESOLUTED);
+
+}
+
+void BilateralGrid::Colorization(Mat3f mat_in,Mat3f mat_bg_draw_in)
+{
+	Mat3f mat_bg_in;
+
+	construct_SliceMatrix();
+	construct_BlurMatrix();
+	calc_Bistochastic();
+	construct_AMatrix_step1();
+
+	cout << "process" << endl;
+	set_DrawImage(mat_bg_draw_in);
+	cout << "construct_AMatrix_step2" << endl;
+	construct_AMatrix_step2();
+	cout << "execute_ICCG" << endl;
+	execute_ICCG(ICCG_LOOP_MAX, ICCG_EPS);
+	cout << "show_Image" << endl;
+	show_Image(BG_COLORIZED);
+
+	imwrite("colorized.png" , get_Image(BG_COLORIZED)*255);
+
+}
+
+
+
 void BilateralGrid::set_DrawImage(Mat3f mat_draw_image)
 {
 	mat_color = mat_draw_image.clone();
@@ -42,10 +93,6 @@ void BilateralGrid::set_DepthImage(Mat1f mat_depth_image)
 }
 
 
-/****************************************************
-brief	: 行列Aを作成する。共通事項
-note	:
-*****************************************************/
 void BilateralGrid::construct_AMatrix_step1()
 {
 	int i, j;
@@ -67,7 +114,7 @@ void BilateralGrid::construct_AMatrix_step1()
 	p_blur = blur_matrix;
 	p_amat_U = A_matrix;
 
-	/*calc NAN*/
+	//DnBDn
 	for(i=0; i<bg_size; i++)
 	{
 		p_amat_U->count = p_blur->count;
@@ -77,27 +124,23 @@ void BilateralGrid::construct_AMatrix_step1()
 		for(j=1; j<p_amat_U->count; j++)
 		{
 			p_amat_U->index[j] = p_blur->index[j];
-			/*重み付けは1*/
 			p_amat_U->value[j] = -WEIGHT_NEIGHBOR * diagN_matrix[i] * diagN_matrix[p_blur->index[j]];
 		}
 		p_blur++;
 		p_amat_U++;
 	}
 
-	/*D - NAN*/
 	p_amat_U = A_matrix;
 	for(i=0; i<bg_size; i++)
 	{
 		p_amat_U->value[0] = diagM_matrix[i] - p_amat_U->value[0];
 
-		//共役勾配法対策、これがないとエラーになる
 		if(p_amat_U->count ==1)
 			p_amat_U->value[0] = 1;
 
 		p_amat_U++;
 	}
 
-	/*ここまではU成分とY成分の計算行列は同じ*/
 	p_amat = A_matrix;
 	p_amat_U = A_matrix_U;
 	p_amat_V = A_matrix_V;
@@ -135,7 +178,7 @@ void BilateralGrid::construct_AMatrix_step2()
 	p_amat = A_matrix;
 	p_amat_U = A_matrix_U;
 	p_amat_V = A_matrix_V;
-	/*初期化*/
+
 	for(i=0; i<bg_size; i++)
 	{
 		b_vecter_U[i] = 0;
@@ -156,7 +199,6 @@ void BilateralGrid::construct_AMatrix_step2()
 	{
 		if(abs(*uv_pix - 0.5) > 0.001)
 		{
-			/*U成分の信頼度を加算*/
 			A_matrix_U[p_splat->bg_index].value[0] += 1.0;
 		}
 		b_vecter_U[p_splat->bg_index] += (*uv_pix - 0.5);
@@ -164,15 +206,14 @@ void BilateralGrid::construct_AMatrix_step2()
 
 		if(abs(*uv_pix - 0.5) > 0.001)
 		{
-			/*V成分の信頼度を加算*/
 			A_matrix_V[p_splat->bg_index].value[0] += 1.0;
 		}
 		b_vecter_V[p_splat->bg_index] += (*uv_pix - 0.5);
-		uv_pix += 2;	/*yチャンネルは飛ばして、uチャンネルへ*/
+		uv_pix += 2;
 		p_splat++;
 	}
 
-	/*multiply lambda*/
+	//multiply lambda
 	p_amat_U = A_matrix_U;
 	p_amat_V = A_matrix_V;
 	element_num = 0;
@@ -218,7 +259,6 @@ void BilateralGrid::construct_AMatrix_step2_for_depth()
 	{
 		if(abs(*d_pix - 0.5) > 0.001)
 		{
-			/*U成分の信頼度を加算*/
 			A_matrix_D[p_splat->bg_index].value[0] += 1.0;
 		}
 		b_vecter_D[p_splat->bg_index] += (*d_pix - 0.5);
@@ -226,7 +266,6 @@ void BilateralGrid::construct_AMatrix_step2_for_depth()
 		p_splat++;
 	}
 
-	/*multiply lambda*/
 	p_amat_D = A_matrix_D;
 	element_num = 0;
 	for(i=0; i<bg_size; i++)
@@ -245,10 +284,6 @@ void BilateralGrid::construct_AMatrix_step2_for_depth()
 
 int counter = 0;
 
-/****************************************************
-brief	: ぼかし行列を作成する
-note	:
-*****************************************************/
 void BilateralGrid::construct_BlurMatrix()
 {
 	int i, j, k;
@@ -260,22 +295,19 @@ void BilateralGrid::construct_BlurMatrix()
 	st_table * p_table_ncol;
 	st_table * p_table_nrow;
 
-	//ポインタの設定
 	p_table = table;
-	p_table_ncol = table + 1;		//次の列 ncol = next column
-	p_table_nrow = table + bg_step;	//次の行 nrow = next row
+	p_table_ncol = table + 1;
+	p_table_nrow = table + bg_step;
 
 	blur_matrix = new st_blur [bg_size];
 	for(i=0; i<bg_size; i++)
 	{
-		//自分自身をblur行列に加える
 		blur_matrix[i].count = 1;
 		blur_matrix[i].index[0] = i;
 	}
 
 	for(i=0; i<tbl_size - bg_step; i++)
 	{
-		//強度成分のぼかしを設定
 		for(j=0; j<p_table->count-1; j++)
 		{
 			for(k=j+1; k<p_table->count; k++)
@@ -288,56 +320,53 @@ void BilateralGrid::construct_BlurMatrix()
 
 
 				int Vdiff = abs(p_table->data[j]%100 - p_table->data[k]%100);
-				std::cout<<"p_table->count:"<<p_table->count<<" compV:"<<p_table->data[j]%100 << " "<< p_table->data[k]%100<<std::endl;
+				// std::cout<<"p_table->count:"<<p_table->count<<" compV:"<<p_table->data[j]%100 << " "<< p_table->data[k]%100<<std::endl;
 				// if(Ydiff + Udiff + Vdiff < BLUR_RADIUS+1)
 				// std::cout<<Ydiff<<std::endl;
 				if(Vdiff < BLUR_RADIUS+1)
 				{
-					std::cout<<"A:"<<counter++<<std::endl;
+					// std::cout<<"center:"<<counter++<<std::endl;
 					tmp_sum1 = p_table->sum + j;
 					tmp_sum2 = p_table->sum + k;
 					blur_matrix[tmp_sum1].index[blur_matrix[tmp_sum1].count] = tmp_sum2;
 					blur_matrix[tmp_sum1].count++;
-					if(blur_matrix[tmp_sum1].count > 1) std::cout<<tmp_sum1<<":"<<blur_matrix[tmp_sum1].count<<std::endl;
+					// if(blur_matrix[tmp_sum1].count > 1) std::cout<<tmp_sum1<<":"<<blur_matrix[tmp_sum1].count<<std::endl;
 					blur_matrix[tmp_sum2].index[blur_matrix[tmp_sum2].count] = tmp_sum1;
 					blur_matrix[tmp_sum2].count++;
-					if(blur_matrix[tmp_sum2].count > 1) std::cout<<tmp_sum2<<":"<<blur_matrix[tmp_sum1].count<<std::endl;
+					// if(blur_matrix[tmp_sum2].count > 1) std::cout<<tmp_sum2<<":"<<blur_matrix[tmp_sum1].count<<std::endl;
 				}
 			}
 		}
-		//空間方向のぼかしを設定
 		for(j=0; j<p_table->count; j++)
 		{
 			tmp_sum1 = p_table->sum + j;
-			//列方向
 			for(k=0; k<p_table_ncol->count; k++)
 			{
 				if(abs(p_table->data[j] - p_table_ncol->data[k]) == 0)
 				{
-					std::cout<<"B:"<<counter++<<std::endl;
+					// std::cout<<"ncol:"<<counter++<<std::endl;
 					tmp_sum2 = p_table_ncol->sum + k;
 					blur_matrix[tmp_sum1].index[blur_matrix[tmp_sum1].count] = tmp_sum2;
 					blur_matrix[tmp_sum1].count++;
-					if(blur_matrix[tmp_sum1].count > 1) std::cout<<tmp_sum1<<":"<<blur_matrix[tmp_sum1].count<<std::endl;
+					// if(blur_matrix[tmp_sum1].count > 1) std::cout<<tmp_sum1<<":"<<blur_matrix[tmp_sum1].count<<std::endl;
 					blur_matrix[tmp_sum2].index[blur_matrix[tmp_sum2].count] = tmp_sum1;
 					blur_matrix[tmp_sum2].count++;
-					if(blur_matrix[tmp_sum2].count > 1) std::cout<<tmp_sum2<<":"<<blur_matrix[tmp_sum1].count<<std::endl;
+					// if(blur_matrix[tmp_sum2].count > 1) std::cout<<tmp_sum2<<":"<<blur_matrix[tmp_sum1].count<<std::endl;
 
 				}
 			}
-			//行方向
 			for(k=0; k<p_table_nrow->count; k++)
 			{
 				if(abs(p_table->data[j] - p_table_nrow->data[k]) == 0)
 				{
-					std::cout<<"C:"<<counter++<<std::endl;
+					// std::cout<<"nrow:"<<counter++<<std::endl;
 					tmp_sum2 = p_table_nrow->sum + k;
 					blur_matrix[tmp_sum1].index[blur_matrix[tmp_sum1].count] = tmp_sum2;
 					blur_matrix[tmp_sum1].count++;
-					if(blur_matrix[tmp_sum1].count > 1) std::cout<<tmp_sum1<<":"<<blur_matrix[tmp_sum1].count<<std::endl;
+					// if(blur_matrix[tmp_sum1].count > 1) std::cout<<tmp_sum1<<":"<<blur_matrix[tmp_sum1].count<<std::endl;
 					blur_matrix[tmp_sum2].index[blur_matrix[tmp_sum2].count] = tmp_sum1;
 					blur_matrix[tmp_sum2].count++;
-					if(blur_matrix[tmp_sum2].count > 1) std::cout<<tmp_sum2<<":"<<blur_matrix[tmp_sum1].count<<std::endl;
+					// if(blur_matrix[tmp_sum2].count > 1) std::cout<<tmp_sum2<<":"<<blur_matrix[tmp_sum1].count<<std::endl;
 				}
 			}
 		}
@@ -348,10 +377,6 @@ void BilateralGrid::construct_BlurMatrix()
 }
 
 
-/****************************************************
-brief	: デバック用。
-note	: バイラテラルグリッドのぼかし効果を確認できる
-*****************************************************/
 void BilateralGrid::execute_Filter()
 {
 	int i,j;
@@ -360,7 +385,6 @@ void BilateralGrid::execute_Filter()
 	st_calc * tmp_calc_blur;
 	st_splat * p_splat;
 
-	/*初期化*/
 	tmp_calc = new st_calc [bg_size];
 	tmp_calc_blur = new st_calc [bg_size];
 	for(i=0; i<bg_size; i++)
@@ -380,10 +404,9 @@ void BilateralGrid::execute_Filter()
 		p_splat++;
 	}
 
-	/*blur処理*/
+	//blur
 	for(i=0; i<bg_size; i++)
 	{
-		//tmp_calcの値とst_blurの値を使ってぼかす
 		tmp_calc_blur[i].value = WEIGHT_CENTER*tmp_calc[blur_matrix[i].index[0]].value;
 		tmp_calc_blur[i].count = WEIGHT_CENTER*tmp_calc[blur_matrix[i].index[0]].count;
 		for(j=1; j<blur_matrix[i].count; j++)
@@ -393,7 +416,7 @@ void BilateralGrid::execute_Filter()
 		}
 	}
 
-	/*slice処理*/
+	//slice
 	y_pix = mat_output.ptr<float>(0, 0);
 	p_splat = splat_matrix;
 	for(i=0; i<img_size; i++)
@@ -404,13 +427,8 @@ void BilateralGrid::execute_Filter()
 	}
 }
 
-/****************************************************
-brief	: 画像の確認。デバック用。
-note	:
-*****************************************************/
 void BilateralGrid::show_Image(int num)
 {
-	//namedWindow("input", WINDOW_AUTOSIZE);
 	switch(num)
 	{
 		case BG_INPUT:
@@ -435,10 +453,6 @@ void BilateralGrid::show_Image(int num)
 }
 
 
-/****************************************************
-brief	: 画像の出力
-note	:
-*****************************************************/
 Mat3f BilateralGrid::get_Image(int num)
 {
 	Mat3f ret;
@@ -457,10 +471,6 @@ Mat3f BilateralGrid::get_Image(int num)
 }
 
 
-/****************************************************
-brief	: スライス行列の作成
-note	:
-*****************************************************/
 void BilateralGrid::construct_SliceMatrix()
 {
 	int i, j, k;
@@ -493,7 +503,6 @@ void BilateralGrid::construct_SliceMatrix()
 	table = new st_table [tbl_size];
 	p_tmp = tmp_splat;
 	p_splat = splat_matrix;
-	/*初期化*/
 	for(i=0; i<tbl_size; i++)
 	{
 		table[i].count = 0;
@@ -509,7 +518,6 @@ void BilateralGrid::construct_SliceMatrix()
 
 			bg_index = bg_i*bg_step + bg_j;
 			comp = (*y_pix * 255)/SIGMA;
-			//y方向の大きさを考慮
 			for(k=0; k<table[bg_index].count; k++)
 			{
 				if(table[bg_index].data[k] == comp)
@@ -597,7 +605,7 @@ void BilateralGrid::construct_SliceMatrix_for_depth()
 	table = new st_table [tbl_size];
 	p_tmp = tmp_splat;
 	p_splat = splat_matrix;
-	/*初期化*/
+
 	for(i=0; i<tbl_size; i++)
 	{
 		table[i].count = 0;
@@ -612,16 +620,18 @@ void BilateralGrid::construct_SliceMatrix_for_depth()
 			bg_j = j_up/SIGMA;
 
 			bg_index = bg_i*bg_step + bg_j;
-			compY = (*y_pix * 255)/SIGMA;
-			compU = (*u_pix * 255)/SIGMA;
-			compV = (*v_pix * 255)/SIGMA;
+			compY = (*y_pix * 255)/sigma_luma;
+			compU = (*u_pix * 255)/sigma_chroma;
+			compV = (*v_pix * 255)/sigma_chroma;
+			// compY = (*y_pix * 255)/SIGMA;
+			// compU = (*u_pix * 255)/SIGMA;
+			// compV = (*v_pix * 255)/SIGMA;
 			// std::cout<<"compYUV:"<<compY<<" "<<compU<<" "<<compV<<std::endl;
 			comp = compY+compU+compV;
 			// comp = (compY*255+compU)*255+compV;
 			// comp = compV+compU*100+compY*10000;
 
 			// comp = ((*y_pix + *u_pix + *v_pix) * 255)/SIGMA;
-			//y方向の大きさを考慮
 			for(k=0; k<table[bg_index].count; k++)
 			{
 				if(table[bg_index].data[k] == comp)
@@ -673,10 +683,6 @@ void BilateralGrid::construct_SliceMatrix_for_depth()
 
 
 
-/****************************************************
-brief	: ユーザが着色した画像からYchを取得する
-note	:
-*****************************************************/
 Mat1f BilateralGrid::get_Ych(Mat3f yuv)
 {
 	int y, x, c;
@@ -741,10 +747,6 @@ Mat1f BilateralGrid::get_Vch(Mat3f yuv)
 }
 
 
-/****************************************************
-brief	: 二重確率化処理
-note	:
-*****************************************************/
 void BilateralGrid::calc_Bistochastic()
 {
 	int i, j, k;
@@ -763,7 +765,6 @@ void BilateralGrid::calc_Bistochastic()
 	vect_denom = new float [bg_size]();
 	p_splat = splat_matrix;
 
-	//初期ベクトルの生成
 	for(i=0; i<bg_size; i++)
 	{
 		vect_n[i] = 1;
@@ -775,10 +776,8 @@ void BilateralGrid::calc_Bistochastic()
 		p_splat++;
 	}
 
-	//収束するまでループする
 	for(k = 0; k < BISTOCHASTIC_LOOP_MAX ; k++)
 	{
-		//分子と分母の計算
 		for(i=0; i<bg_size; i++)
 		{
 			vect_numer[i] = vect_n[i] * vect_m[i];
@@ -795,7 +794,7 @@ void BilateralGrid::calc_Bistochastic()
 		}
 
 		sum = 0;
-		//ベクトルnを更新する
+
 		for(i=0; i<bg_size; i++)
 		{
 			tmp = sqrt(vect_numer[i] / vect_denom[i]);
@@ -803,14 +802,12 @@ void BilateralGrid::calc_Bistochastic()
 			vect_n[i] = tmp;
 		}
 
-		//誤差がしきい値より小さいなら収束と判定
 		if(sum < BISTOCHASTIC_THRE)
 		{
 			break;
 		}
 	}
 
-	//収束した結果を格納する
 	diagN_matrix = new float [bg_size]();
 	diagM_matrix = new float [bg_size]();
 	for(i=0; i<bg_size; i++)
@@ -821,10 +818,6 @@ void BilateralGrid::calc_Bistochastic()
 }
 
 
-/****************************************************
-brief	: フォーマットをCSR形式にする。
-note	: ここまでは、オリジナル形式で作成していたので。
-*****************************************************/
 str_CSR	BilateralGrid::convertCSR(st_A * mat_A)
 {
 	int i, j;
@@ -873,10 +866,6 @@ str_CSR	BilateralGrid::convertCSR(st_A * mat_A)
 }
 
 
-/****************************************************
-brief	: 共役勾配法を実行、スライス処理までやってしまう
-note	:
-*****************************************************/
 void BilateralGrid::execute_ICCG(int iter, float eps)
 {
 	#ifdef _DEBUG_
@@ -899,7 +888,7 @@ void BilateralGrid::execute_ICCG(int iter, float eps)
 		vec_v_in[i] = b_vecter_V[i];
 	}
 
-	loop_cut = 14 * (img_cols/SIGMA);	/*ぼかし行列のサイズ 14 = 7*2 */
+	loop_cut = 14 * (img_cols/SIGMA);
 
 	#ifdef _DEBUG_
 	std::cout << "convertCSR 1" << std::endl;
@@ -962,7 +951,7 @@ void BilateralGrid::execute_ICCG_for_depth(int iter, float eps)
 		vec_d_in[i] = b_vecter_D[i];
 	}
 
-	loop_cut = 14 * (img_cols/SIGMA);	/*ぼかし行列のサイズ 14 = 7*2 */
+	loop_cut = 14 * (img_cols/SIGMA);
 
 	#ifdef _DEBUG_
 	std::cout << "convertCSR 1" << std::endl;
@@ -989,7 +978,6 @@ void BilateralGrid::execute_ICCG_for_depth(int iter, float eps)
 	#endif
 	for(int i=0; i<img_size; i++)
 	{
-		// std::cout << "d_pix"<<vec_d_out[p_splat->bg_index] << std::endl;
 		*d_pix = vec_d_out[p_splat->bg_index]+ 0.5;
 		d_pix++;
 		p_splat++;
