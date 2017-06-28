@@ -7,7 +7,7 @@
 #define BLUR_RADIUS (1)
 #define WEIGHT_CENTER (6)
 #define WEIGHT_NEIGHBOR (1)
-#define BISTOCHASTIC_LOOP_MAX (50)
+#define BISTOCHASTIC_LOOP_MAX (10)
 #define BISTOCHASTIC_THRE (0.001)
 #define LAMBDA (1.0)
 

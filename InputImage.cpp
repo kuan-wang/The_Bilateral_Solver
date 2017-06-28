@@ -55,7 +55,11 @@ InputImage::InputImage(Mat3f mat_image)
 	mat_input = mat_image.clone();
 	cvtColor(mat_input, mat_gray, COLOR_BGR2GRAY);
 	mat_draw_bp = copy_GlaychForRGBch(mat_gray, mat_input);
+	// cvtColor(mat_draw_bp, mat_yuv, COLOR_BGR2YCrCb);
 	cvtColor(mat_image, mat_yuv, COLOR_BGR2YCrCb);
+	std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
+	std::cout << mat_draw_bp.cols<< "x" << mat_draw_bp.rows <<"x"<< mat_draw_bp.channels()<< std::endl;
+	std::cout << mat_image.cols<< "x" << mat_image.rows << "x"<< mat_image.channels()<<std::endl;
 	std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
 	mat_draw = mat_draw_bp.clone();
 }

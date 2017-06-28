@@ -17,7 +17,7 @@ note	:
 *****************************************************/
 BilateralGrid::BilateralGrid(Mat3f mat_image)
 {
-	std::cout << "mat_image"<< mat_image.col(1) << std::endl;
+	// std::cout << "mat_image"<< mat_image.col(1) << std::endl;
 	mat_inputY = get_Ych(mat_image);
 	mat_inputU = get_Uch(mat_image);
 	mat_inputV = get_Vch(mat_image);
@@ -243,6 +243,7 @@ void BilateralGrid::construct_AMatrix_step2_for_depth()
 
 
 
+int counter = 0;
 
 /****************************************************
 brief	: ぼかし行列を作成する
@@ -279,22 +280,28 @@ void BilateralGrid::construct_BlurMatrix()
 		{
 			for(k=j+1; k<p_table->count; k++)
 			{
-				int Ydiff = abs(((p_table->data[j]/51)/51)%51 - ((p_table->data[k]/51)/51)%51);
-				int Udiff = abs((p_table->data[j]/51)%51 - (p_table->data[k]/51)%51);
-				int Vdiff = abs(p_table->data[j]%51 - p_table->data[k]%51);
+				// int Ydiff = abs(((p_table->data[j]/255)/255)%255 - ((p_table->data[k]/255)/255)%255);
+				// int Udiff = abs((p_table->data[j]/255)%255 - (p_table->data[k]/255)%255);
+				// int Vdiff = abs(p_table->data[j]%255 - p_table->data[k]%255);
 
 				// std::cout << "YUV diff:"<< Ydiff << " "<<Udiff<<" "<<Vdiff << std::endl;
 
 
-				// if(Ydiff < BLUR_RADIUS+1)
-				if(Ydiff + Udiff + Vdiff < BLUR_RADIUS+1)
+				int Vdiff = abs(p_table->data[j]%100 - p_table->data[k]%100);
+				std::cout<<"p_table->count:"<<p_table->count<<" compV:"<<p_table->data[j]%100 << " "<< p_table->data[k]%100<<std::endl;
+				// if(Ydiff + Udiff + Vdiff < BLUR_RADIUS+1)
+				// std::cout<<Ydiff<<std::endl;
+				if(Vdiff < BLUR_RADIUS+1)
 				{
+					std::cout<<"A:"<<counter++<<std::endl;
 					tmp_sum1 = p_table->sum + j;
 					tmp_sum2 = p_table->sum + k;
 					blur_matrix[tmp_sum1].index[blur_matrix[tmp_sum1].count] = tmp_sum2;
 					blur_matrix[tmp_sum1].count++;
+					if(blur_matrix[tmp_sum1].count > 1) std::cout<<tmp_sum1<<":"<<blur_matrix[tmp_sum1].count<<std::endl;
 					blur_matrix[tmp_sum2].index[blur_matrix[tmp_sum2].count] = tmp_sum1;
 					blur_matrix[tmp_sum2].count++;
+					if(blur_matrix[tmp_sum2].count > 1) std::cout<<tmp_sum2<<":"<<blur_matrix[tmp_sum1].count<<std::endl;
 				}
 			}
 		}
@@ -307,11 +314,14 @@ void BilateralGrid::construct_BlurMatrix()
 			{
 				if(abs(p_table->data[j] - p_table_ncol->data[k]) == 0)
 				{
+					std::cout<<"B:"<<counter++<<std::endl;
 					tmp_sum2 = p_table_ncol->sum + k;
 					blur_matrix[tmp_sum1].index[blur_matrix[tmp_sum1].count] = tmp_sum2;
 					blur_matrix[tmp_sum1].count++;
+					if(blur_matrix[tmp_sum1].count > 1) std::cout<<tmp_sum1<<":"<<blur_matrix[tmp_sum1].count<<std::endl;
 					blur_matrix[tmp_sum2].index[blur_matrix[tmp_sum2].count] = tmp_sum1;
 					blur_matrix[tmp_sum2].count++;
+					if(blur_matrix[tmp_sum2].count > 1) std::cout<<tmp_sum2<<":"<<blur_matrix[tmp_sum1].count<<std::endl;
 
 				}
 			}
@@ -320,11 +330,14 @@ void BilateralGrid::construct_BlurMatrix()
 			{
 				if(abs(p_table->data[j] - p_table_nrow->data[k]) == 0)
 				{
+					std::cout<<"C:"<<counter++<<std::endl;
 					tmp_sum2 = p_table_nrow->sum + k;
 					blur_matrix[tmp_sum1].index[blur_matrix[tmp_sum1].count] = tmp_sum2;
 					blur_matrix[tmp_sum1].count++;
+					if(blur_matrix[tmp_sum1].count > 1) std::cout<<tmp_sum1<<":"<<blur_matrix[tmp_sum1].count<<std::endl;
 					blur_matrix[tmp_sum2].index[blur_matrix[tmp_sum2].count] = tmp_sum1;
 					blur_matrix[tmp_sum2].count++;
+					if(blur_matrix[tmp_sum2].count > 1) std::cout<<tmp_sum2<<":"<<blur_matrix[tmp_sum1].count<<std::endl;
 				}
 			}
 		}
@@ -602,8 +615,10 @@ void BilateralGrid::construct_SliceMatrix_for_depth()
 			compY = (*y_pix * 255)/SIGMA;
 			compU = (*u_pix * 255)/SIGMA;
 			compV = (*v_pix * 255)/SIGMA;
+			// std::cout<<"compYUV:"<<compY<<" "<<compU<<" "<<compV<<std::endl;
 			comp = compY+compU+compV;
-			// comp = (compY*51+compU)*51+compV;
+			// comp = (compY*255+compU)*255+compV;
+			// comp = compV+compU*100+compY*10000;
 
 			// comp = ((*y_pix + *u_pix + *v_pix) * 255)/SIGMA;
 			//y方向の大きさを考慮
@@ -773,8 +788,9 @@ void BilateralGrid::calc_Bistochastic()
 			vect_denom[i] = WEIGHT_CENTER * vect_n[blur_matrix[i].index[0]];
 			for(j=1; j<blur_matrix[i].count; j++)
 			{
-				// std::cout << "get" <<blur_matrix[i].count<<" "<<j<< std::endl;
+				if(blur_matrix[i].count > 100) break;
 				vect_denom[i] += vect_n[blur_matrix[i].index[j]];
+				// std::cout << "get" <<blur_matrix[i].count<<" "<< std::endl;
 			}
 		}
 
