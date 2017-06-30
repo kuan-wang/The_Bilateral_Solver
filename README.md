@@ -1,3 +1,4 @@
+
 #The Fast Bilateral Solver
 
 **The Bilater Solver** is a novel algorithm for edge-aware smoothing that combines the flexibility and speed of simple filtering approaches with the accuracy of domain-specific optimization algorithms. This algorithm was presented by Jonathan T. Barron and Ben Poole as an ECCV2016 oral and best paper nominee. Algorithm details and applications can be found in https://arxiv.org/pdf/1511.03296.pdf .
@@ -62,7 +63,7 @@ st->inr->bg->sl->bl->A1->int->A2->cg->out->e
 
 ###Reference
 ```
-@article{BarronPoole2016,
+article{BarronPoole2016,
 author = {Jonathan T Barron and Ben Poole},
 title = {The Fast Bilateral Solver},
 journal = {ECCV},
@@ -106,13 +107,19 @@ make
 This will create three executable demos, that you can run as shown in below.
 
 ####Depthsuperresolution
+
+![target](https://raw.githubusercontent.com/THUKey/The_Bilateral_Solver/master/build/target.png)
+the target.
 ```
 ./Depthsuperres
 ```
-![target](https://raw.githubusercontent.com/THUKey/The_Bilateral_Solver/master/build/target.png)
-the target.
 ![result](https://raw.githubusercontent.com/THUKey/The_Bilateral_Solver/master/build/depthsuperresolution.png)
-This result is far from the optimal performance, which means there are some extra work to do, such as to patiently adjustment parameters and to optimize the implementation.
+This result(use bilateral solver) is far from the optimal performance, which means there are some extra work to do, such as to patiently adjustment parameters and to optimize the implementation.
+```
+./Latticefilter reference.png target.png
+```
+ ![enter image description here](https://raw.githubusercontent.com/THUKey/The_Bilateral_Solver/master/build/lattice_output.png)
+ This result(use permutohedral_lattice) is quite nice.
 ####Colorization
 ```
 ./Colorize rose1.webp
@@ -129,9 +136,10 @@ you could change the **rose1.webp** to your own image. Thanks for [timuda](https
 ```
 In Barron's another paper *Fast Bilateral-Space Stereo for Synthetic Defocus*, both bileteral_solver and permutohedral lattice are used to do experiment, and the result shows that bilateral_solver is  faster than permutohedral lattice technique, but the permutohedral is more accurate than the bilateral_solver. In other words, this is the tradeoff between time and accuracy. Actually, both two techniques' tradeoff can be worthwhile in appropriate condition. So I want to implement both two technique for more widely use.
 ![output](https://raw.githubusercontent.com/THUKey/The_Bilateral_Solver/master/build/lattice_flower8.png)
-output.
+filter_output.
 ![input](https://raw.githubusercontent.com/THUKey/The_Bilateral_Solver/master/build/flower8.jpg)
-input.
+filter_input.
+
 
 __________
 ##Basic Usage
@@ -168,6 +176,6 @@ __________
 |Depthsuperres module |   Completed |  need optimize  |
 |Colorization module |   Completed |choose ICCG or others|
 |PermutohedralLatticeFilter   | Completed |increse Compatibility |
-|Semantic Segmentation optimizer |   Ongoing |  try applying in CNN
+|Semantic Segmentation optimizer |   Ongoing |  try apply in CNN
 |Contribute project to OpenCV   |    Ongoing | coding testfile  |
 |Detail Documentation  | Ongoing | writing toturial   |
