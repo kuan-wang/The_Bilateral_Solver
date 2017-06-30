@@ -481,10 +481,77 @@ void bilateral(cv::Mat& im, float spatialSigma, float colorSigma) {
 }
 
 
+// A bilateral filter of a color image with the given spatial standard
+// deviation and color-space standard deviation
+void bilateral(cv::Mat& im,cv::Mat& target, float spatialSigma, float colorSigma) {
+
+    if(im.cols != target.cols || im.rows != target.rows)
+    {
+        std::cout << "the shape of target is different from im " << std::endl;
+    }
+
+    // Construct the five-dimensional position vectors and
+    // four-dimensional value vectors
+    vector<float> positions(im.cols*im.rows*5);
+    vector<float> values(im.cols*im.rows*4);
+    int idx = 0;
+
+    clock_t now;
+	std::cout << "start filling positions and values" << std::endl;
+    now = clock();
+    printf( "now is %f seconds\n", (double)(now) / CLOCKS_PER_SEC);
+    for (int y = 0; y < im.cols; y++) {
+        for (int x = 0; x < im.rows; x++) {
+            positions[idx*5+0] = x/spatialSigma;
+            positions[idx*5+1] = y/spatialSigma;
+            positions[idx*5+2] = im.at<cv::Vec3b>(x,y)[0]/colorSigma;
+            positions[idx*5+3] = im.at<cv::Vec3b>(x,y)[1]/colorSigma;
+            positions[idx*5+4] = im.at<cv::Vec3b>(x,y)[2]/colorSigma;
+            values[idx*4+0] = target.at<uchar>(x,y);
+            // values[idx*4+1] = target.at<uchar>(x,y);
+            // values[idx*4+2] = target.at<uchar>(x,y);
+            values[idx*4+1] = 1.0f;
+            values[idx*4+2] = 1.0f;
+            values[idx*4+3] = 1.0f;
+            idx++;
+        }
+    }
+
+	std::cout << "start PermutohedralLattice::filter" << std::endl;
+    now = clock();
+    printf( "now is %f seconds\n", (double)(now) / CLOCKS_PER_SEC);
+
+    // Perform the Gauss transform. For the five-dimensional case the
+    // Permutohedral Lattice is appropriate.
+    PermutohedralLattice::filter(&positions[0], 5,
+                                    &values[0], 4,
+                                    im.cols*im.rows,
+                                    &values[0]);
+
+    // Divide through by the homogeneous coordinate and store the
+    // result back to the image
+    idx = 0;
+    for (int y = 0; y < im.cols; y++) {
+        for (int x = 0; x < im.rows; x++) {
+            float w = values[idx*4+3];
+            target.at<uchar>(x,y) = values[idx*4+0]/w;
+            // target.at<cv::uchar>(x,y) = values[idx*4+1]/w;
+            // target.at<cv::uchar>(x,y) = values[idx*4+2]/w;
+            // target.at<cv::Vec3b>(x,y)[0] = values[idx*4+0]/w;
+            // target.at<cv::Vec3b>(x,y)[1] = values[idx*4+0]/w;
+            // target.at<cv::Vec3b>(x,y)[2] = values[idx*4+0]/w;
+            idx++;
+        }
+    }
+}
+
+
+
 int main(int argc, char const *argv[]) {
     std::cout << "hello opencv" << '\n';
     cv::Mat im = cv::imread(argv[1]);
     cv::Mat im1 = cv::imread(argv[1]);
+    cv::Mat target = cv::imread(argv[2],0);
     // cv::Mat im1 = cv::imread("flower8.jpg");
     std::cout << "im:" << im.cols<<"x"<< im.rows<< std::endl;
     // cv::imshow("im",im);
@@ -519,14 +586,15 @@ int main(int argc, char const *argv[]) {
     now = clock();
     printf( "now is %f seconds\n", (double)(now) / CLOCKS_PER_SEC);
 	// bilateral(im,8.0,4.0);
-	bilateral(im,64.0,32.0);
+	bilateral(im,target,16.0,8.0);
+	// bilateral(im,64.0,32.0);
     finish = clock();
     duration = (double)(finish - start) / CLOCKS_PER_SEC;
     printf( "%f seconds\n", duration );
-	cv::Mat im2 = 2*(im1-im);
-	cv::imshow("output",im);
+	// cv::Mat im2 = 2*(im1-im);
+	// cv::imshow("output",im);
 	cv::imshow("input",im1);
-	cv::imshow("difference",im2);
+	cv::imshow("output",target);
 	cv::waitKey(0);
 
     return 0;

@@ -319,10 +319,11 @@ void BilateralGrid::construct_BlurMatrix()
 				// std::cout << "YUV diff:"<< Ydiff << " "<<Udiff<<" "<<Vdiff << std::endl;
 
 
-				int Ydiff = abs(p_table->data[j] - p_table->data[k]);
-				// std::cout<<"p_table->count:"<<p_table->count<<" compV:"<<p_table->data[j]%100 << " "<< p_table->data[k]%100<<std::endl;
+				// int Ydiff = abs(p_table->data[j]%20 - p_table->data[k]%20);
+				int Ydiff = abs(p_table->data[j]/100 - p_table->data[k]/100);
+				// std::cout<<"p_table->count:"<<p_table->count<<" compdata:"<<p_table->data[j] << " "<< p_table->data[k]<<std::endl;
 				// if(Ydiff + Udiff + Vdiff < BLUR_RADIUS+1)
-				// std::cout<<Ydiff<<std::endl;
+				std::cout<<Ydiff<<std::endl;
 				if(Ydiff < BLUR_RADIUS+1)
 				{
 					// std::cout<<"center:"<<counter++<<std::endl;
@@ -611,6 +612,7 @@ void BilateralGrid::construct_SliceMatrix_for_depth()
 		table[i].count = 0;
 	}
 
+	int YUVmax = 0;
 	for(i=0, i_up=SIGMA/2; i<img_rows; i++, i_up++)
 	{
 		bg_i = i_up/SIGMA;
@@ -628,7 +630,11 @@ void BilateralGrid::construct_SliceMatrix_for_depth()
 			// compV = (*v_pix * 255)/SIGMA;
 			// std::cout<<"compYUV:"<<compY<<" "<<compU<<" "<<compV<<std::endl;
 			// comp = compY+compU*10+compV*100;
-			comp = compY;
+			comp = compY*100+compU*10+compV;
+			if(compY > YUVmax) YUVmax = compY;
+			if(compU > YUVmax) YUVmax = compU;
+			if(compV > YUVmax) YUVmax = compV;
+			// std::cout << "compYUV: " <<compY<< " "<<compU<< " "<<compV<< std::endl;
 			// comp = (compY*255+compU)*255+compV;
 			// comp = compV+compU*100+compY*10000;
 
@@ -655,6 +661,7 @@ void BilateralGrid::construct_SliceMatrix_for_depth()
 			v_pix++;
 		}
 	}
+	std::cout << "YUVmax:"<<YUVmax << std::endl;
 
 	bg_sum = 0;
 	table[0].sum = 0;

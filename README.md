@@ -127,7 +127,7 @@ you could change the **rose1.webp** to your own image. Thanks for [timuda](https
 ```
 ./Latticefilter flower8.jpg
 ```
-In Barron's another paper *Fast Bilateral-Space Stereo for Synthetic Defocus*, both bileteral_solver and permutohedral lattice are used to do experiment, and the result shows that bilateral_solver is  faster than permutohedral lattice technique, but the permutohedral is more accurate the than bilateral_solver. In other words, this is the tradeoff between time and accuracy. Actually, both two techniques' tradeoff can be worthwhile in appropriate condition. So I want to implement both two technique for more widely use.
+In Barron's another paper *Fast Bilateral-Space Stereo for Synthetic Defocus*, both bileteral_solver and permutohedral lattice are used to do experiment, and the result shows that bilateral_solver is  faster than permutohedral lattice technique, but the permutohedral is more accurate than the bilateral_solver. In other words, this is the tradeoff between time and accuracy. Actually, both two techniques' tradeoff can be worthwhile in appropriate condition. So I want to implement both two technique for more widely use.
 ![output](https://raw.githubusercontent.com/THUKey/The_Bilateral_Solver/master/build/lattice_flower8.png)
 output.
 ![input](https://raw.githubusercontent.com/THUKey/The_Bilateral_Solver/master/build/flower8.jpg)
@@ -168,6 +168,6 @@ __________
 |Depthsuperres module |   Completed |  need optimize  |
 |Colorization module |   Completed |choose ICCG or others|
 |PermutohedralLatticeFilter   | Completed |increse Compatibility |
-|Semantic Segmentation optimizer |   Ongoing |  try apply in CNN
+|Semantic Segmentation optimizer |   Ongoing |  try applying in CNN
 |Contribute project to OpenCV   |    Ongoing | coding testfile  |
 |Detail Documentation  | Ongoing | writing toturial   |
