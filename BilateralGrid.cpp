@@ -320,7 +320,7 @@ void BilateralGrid::construct_BlurMatrix()
 
 
 				// int Ydiff = abs(p_table->data[j]%20 - p_table->data[k]%20);
-				int Ydiff = abs(p_table->data[j]/100 - p_table->data[k]/100);
+				int Ydiff = abs(p_table->data[j] - p_table->data[k]);
 				// std::cout<<"p_table->count:"<<p_table->count<<" compdata:"<<p_table->data[j] << " "<< p_table->data[k]<<std::endl;
 				// if(Ydiff + Udiff + Vdiff < BLUR_RADIUS+1)
 				std::cout<<Ydiff<<std::endl;

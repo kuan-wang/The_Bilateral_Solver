@@ -20,3 +20,8 @@ target_link_libraries( Depthsuperres ${OpenCV_LIBS} )
 
 add_executable( Latticefilter permutohedral_lattice.cpp)
 target_link_libraries( Latticefilter ${OpenCV_LIBS} )
+
+
+
+#add_executable(SparseMatrix  Sparse-Matrix/src/SparseMatrix/SparseMatrix.cpp Sparse-Matrix/tests/run.cpp)
+#target_link_libraries( SparseMatrix ${OpenCV_LIBS} )
