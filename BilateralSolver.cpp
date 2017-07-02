@@ -14,10 +14,12 @@
 #include <vector>
 
 #include <math.h>
+#include <cmath>
 #include <vector>
 #include <memory>
 
 #include "Sparse-Matrix/src/SparseMatrix/SparseMatrix.cpp"
+#include "ICCG.hpp"
 
 
 
@@ -586,17 +588,27 @@ std::vector<float> unique(const cv::Mat& input, bool sort = false)
 
 
 
-template<class ForwardIt, class T, class Compare=std::less<>>
-ForwardIt binary_find(ForwardIt first, ForwardIt last, const T& value, Compare comp={})
+// template<class ForwardIt, class T, class Compare=std::less<>>
+// ForwardIt binary_find(ForwardIt first, ForwardIt last, const T& value, Compare comp={})
+// {
+//     // Note: BOTH type T and the type after ForwardIt is dereferenced
+//     // must be implicitly convertible to BOTH Type1 and Type2, used in Compare.
+//     // This is stricter than lower_bound requirement (see above)
+//
+//     first = std::lower_bound(first, last, value, comp);
+//     return first != last && !comp(value, *first) ? first : last;
+// }
+
+template<class ForwardIt, class T>
+ForwardIt binary_find(ForwardIt first, ForwardIt last, const T& value)
 {
     // Note: BOTH type T and the type after ForwardIt is dereferenced
     // must be implicitly convertible to BOTH Type1 and Type2, used in Compare.
     // This is stricter than lower_bound requirement (see above)
 
-    first = std::lower_bound(first, last, value, comp);
-    return first != last && !comp(value, *first) ? first : last;
+    first = std::lower_bound(first, last, value);
+    return first != last && !std::comp(value, *first) ? first : last;
 }
-
 
 
 
@@ -639,10 +651,10 @@ public:
     // vd : dimensionality of value vectors
     // n : number of points in the input
     BilateralGrid(int pd, int vd, int n) :
-        dim(pd), vd(vd), npixels(n), hashTable(pd, vd) {
+        dim(pd), vd(vd), npixels(n) {
 
         // Allocate storage for various arrays
-        blurs.resize(dim);
+        // blurs.resize(dim);
         bs_param = bs_params();
         grid_param = grid_params();
 
@@ -652,13 +664,13 @@ public:
 
     void solve(std::vector<float>& x, std::vector<float>& w) {
 
-        SparseMatrix<float> bluredDn;
+        SparseMatrix<float> bluredDn(nvertices);
         Blur(Dn,bluredDn);
         SparseMatrix<float> A_smooth = Dm - Dn.multiply(bluredDn);
         // SparseMatrix<float> A_diag(nvertices);
         SparseMatrix<float> M(nvertices);
-        SparseMatrix<float> A_data;
-        SparseMatrix<float> A;
+        SparseMatrix<float> A_data(nvertices);
+        SparseMatrix<float> A(nvertices);
         std::vector<float> w_splat;
         std::vector<float> xw(x.size());
         std::vector<float> b;
@@ -666,7 +678,7 @@ public:
         std::vector<float> yhat;
         Splat(w,w_splat);
         diags(w_splat,A_data);
-        A = bs_param.lam * A_smooth + A_data;
+        A =  (A_smooth + A_data).multiply(bs_param.lam);
         for (int i = 0; i < x.size(); i++) {
             xw[i] = x[i] * w[i];
         }
@@ -680,14 +692,14 @@ public:
             }
             else
             {
-                M.set(1.0/A_diag_min,i+1,i+1);
+                M.set(1.0/bs_param.A_diag_min,i+1,i+1);
             }
         }
 
         for (int i = 0; i < b.size(); i++) {
             y0[i] = b[i] / w_splat[i];
         }
-        yhat = y0[i];       // why shold empty_like(y0)
+        yhat = y0;       // why shold empty_like(y0)
 
 
 
@@ -728,13 +740,13 @@ public:
 
     void Blur(SparseMatrix<float>& x, SparseMatrix<float>& result)
     {
-        if(x.getRowCount() != nvertices || x.getColumnCount != nvertices)
+        if(x.getRowCount() != nvertices || x.getColumnCount() != nvertices)
         {
             std::cout << "x.getRowCount() != nvertices || x.getColumnCount != nvertices" << std::endl;
             exit(-1);
         }
 
-        result = ((float)(2.0 * dim)) * x;
+        result = x.multiply(((float)(2.0 * dim)));
         for (int i = 0; i < dim; i++) {
             result = result.add(blurs[i].multiply(x));
         }
@@ -770,14 +782,14 @@ public:
 
 
 
-    void unique(const std::vector<float>& hashed_coords, std::vector<float>& unique_hashes,
+    void unique(std::vector<float>& hashed_coords, std::vector<float>& unique_hashes,
                 std::vector<int>& unique_idx,std::vector<int>& idx)
     {
         for (int i = 0; i < hashed_coords.size(); i++) {
-            if(std::find(unique_hashes.begin(), unique_hashes.end(), hashed_coords[i]) == out.end())
+            if(std::find(unique_hashes.begin(), unique_hashes.end(), hashed_coords[i]) == unique_hashes.end())
                 unique_hashes.push_back(hashed_coords[i]);
         }
-        std::sort(out.begin(), out.end());
+        std::sort(unique_hashes.begin(), unique_hashes.end());
 
         for (int i = 0; i < hashed_coords.size(); i++) {
             std::vector<float>::iterator iter = std::find(unique_hashes.begin(), unique_hashes.end(), hashed_coords[i]);
@@ -792,26 +804,26 @@ public:
     }
 
 
-    void get_valid_idx(std::vector<float>& valid, std::vector<float>& candidate,
+    void get_valid_idx(std::vector<float>& valid, std::vector<float>& candidates,
                         std::vector<int>& valid_idx, std::vector<int>& locs)
     {
         valid_idx.clear();
         locs.clear();
         for (int i = 0; i < candidates.size(); i++) {
-            auto iter = binary_find(valid.cbegin(), valid.cend(), candidates[i]);
-            if(iter != data.cend())
+            std::vector<float>::iterator iter = binary_find(valid.begin(), valid.end(), candidates[i]);
+            if(iter != valid.end())
             {
-                locs.push_back(std::distance(valid.cbegin(), iter));
+                locs.push_back(std::distance(valid.begin(), iter));
                 valid_idx.push_back(i);
             }
         }
 
     }
 
-    void csr_matrix(SparseMatrix<float>& SpMat std::vector<float>& values,
+    void csr_matrix(SparseMatrix<float>& SpMat, std::vector<float>& values,
                     std::vector<int>& rows, std::vector<int>& cols)
     {
-        SparseMatrix mat(rows.size(),cols.size());
+        SparseMatrix<float> mat(rows.size(),cols.size());
         for (int i = 0; i < values.size(); i++) {
             mat.set(values[i],rows[i]+1,cols[i]+1);
         }
@@ -819,7 +831,7 @@ public:
     }
 
     void diags(std::vector<float>& v,SparseMatrix<float>& m) {
-        m = SparseMatrix(v.size());
+        m = SparseMatrix<float>(v.size());
         for (int i = 0; i < v.size(); i++) {
             m.set(v[i],i+1,i+1);
         }
@@ -842,7 +854,7 @@ public:
     {
         std::vector<float> hashed_coords;
         std::vector<float> unique_hashes;
-        std::vector<int> unique_coords;
+        std::vector<float> unique_coords;
         std::vector<int> unique_idx;
         std::vector<int> idx;
         std::vector<float> ones_npixels(npixels,1.0);
@@ -850,7 +862,7 @@ public:
         std::vector<int> arange_npixels(npixels);
 
         for (int i = 0; i < npixels; i++) {
-            arange.push_back(i);
+            arange_npixels.push_back(i);
         }
 
         hash_coords(coords_flat,hashed_coords);
@@ -860,7 +872,7 @@ public:
         nvertices = unique_idx.size();
         for (int i = 0; i < nvertices; i++) {
             for (int j = 0; j < dim; j++) {
-                unique_coords.push_back(coords_flat[unique_idx[i]*dim+j])
+                unique_coords.push_back(coords_flat[unique_idx[i]*dim+j]);
             }
         }
 
@@ -873,6 +885,7 @@ public:
                 std::vector<float> neighbor_coords = unique_coords;
                 std::vector<float> neighbor_hashes;
                 std::vector<int> valid_coord;
+                std::vector<int> neighbor_idx;
                 std::vector<int> valid_idx;
                 for (int k = 0; k < nvertices; k++) {
                     neighbor_coords[k*dim+i] += j;
@@ -900,7 +913,7 @@ private:
     int pd;
     int vd;
     // std::vector<float> hash_vec;
-    std::vector<SparseMatrix<float>> blurs;
+    std::vector<SparseMatrix<float> > blurs;
     SparseMatrix<float> S;
     SparseMatrix<float> Dn;
     SparseMatrix<float> Dm;
