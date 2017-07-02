@@ -995,9 +995,7 @@ void bilateral(cv::Mat& reference,cv::Mat& target, float spatialSigma, float lum
     now = clock();
     printf( "now is %f seconds\n", (double)(now) / CLOCKS_PER_SEC);
 
-    // Perform the Gauss transform. For the five-dimensional case the
-    // Permutohedral Lattice is appropriate.
-    PermutohedralLattice::filter(&positions[0], 5,
+    BilateralGrid::solve(&positions[0], 5,
                                     &values[0], 4,
                                     reference.cols*reference.rows,
                                     &values[0]);
