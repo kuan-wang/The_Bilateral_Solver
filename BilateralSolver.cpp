@@ -655,29 +655,41 @@ public:
         SparseMatrix<float> bluredDn;
         Blur(Dn,bluredDn);
         SparseMatrix<float> A_smooth = Dm - Dn.multiply(bluredDn);
-        SparseMatrix<float> A_diag(nvertices);
+        // SparseMatrix<float> A_diag(nvertices);
+        SparseMatrix<float> M(nvertices);
         SparseMatrix<float> A_data;
         SparseMatrix<float> A;
         std::vector<float> w_splat;
         std::vector<float> xw(x.size());
         std::vector<float> b;
+        std::vector<float> y0;
+        std::vector<float> yhat;
         Splat(w,w_splat);
         diags(w_splat,A_data);
         A = bs_param.lam * A_smooth + A_data;
         for (int i = 0; i < x.size(); i++) {
             xw[i] = x[i] * w[i];
         }
+
         Splat(xw,b);
+
         for (int i = 0; i < nvertices; i++) {
             if(A.get(i+1,i+1) > bs_param.A_diag_min)
             {
-                A_diag.set(A.get(i+1,i+1),i+1,i+1);
+                M.set(1.0/A.get(i+1,i+1),i+1,i+1);
             }
             else
             {
-                A_diag.set(A_diag_min,i+1,i+1);
+                M.set(1.0/A_diag_min,i+1,i+1);
             }
         }
+
+        for (int i = 0; i < b.size(); i++) {
+            y0[i] = b[i] / w_splat[i];
+        }
+        yhat = y0[i];       // why shold empty_like(y0)
+
+
 
 
     }
