@@ -1,7 +1,16 @@
 
 #include<opencv2/core/core.hpp>
+// #include<opencv2/core/eigen.hpp>
 #include<opencv2/highgui.hpp>
 #include<opencv2/opencv.hpp>
+
+// Eigen SparseMatrix
+#include <Eigen/SparseCore>
+#include <Eigen/SparseCholesky>
+#include <Eigen/IterativeLinearSolvers>
+#include <Eigen/Sparse>
+
+
 
 
 #include <stdio.h>
@@ -18,11 +27,12 @@
 #include <vector>
 #include <memory>
 
-#include "Sparse-Matrix/src/SparseMatrix/SparseMatrix.cpp"
+// #include "Sparse-Matrix/src/SparseMatrix/SparseMatrix.cpp"
 #include "ICCG.hpp"
 
 
 
+using namespace Eigen;
 using std::vector;
 
 // Hash table implementation for permutohedral lattice.
@@ -70,7 +80,7 @@ public:
 
                 // Need to create an entry. Store the given key.
                 for (int i = 0; i < kd; i++) {
-                keys[filled*kd+i] = key[i];
+                    keys[filled*kd+i] = key[i];
                 }
                 e.keyIdx = filled*kd;
                 e.valueIdx = filled*vd;
@@ -607,7 +617,7 @@ ForwardIt binary_find(ForwardIt first, ForwardIt last, const T& value)
     // This is stricter than lower_bound requirement (see above)
 
     first = std::lower_bound(first, last, value);
-    return first != last && !std::comp(value, *first) ? first : last;
+    return (first != last) && (value < *first) ? first : last;
 }
 
 
@@ -662,15 +672,15 @@ public:
     }
 
 
-    void solve(std::vector<float>& x, std::vector<float>& w) {
+    void solve(std::vector<float>& x, int pd, std::vector<float>& w,int vd, int n,std::vector<float>& out) {
 
-        SparseMatrix<float> bluredDn(nvertices);
+        Eigen::SparseMatrix<float> bluredDn(nvertices,nvertices);
         Blur(Dn,bluredDn);
-        SparseMatrix<float> A_smooth = Dm - Dn.multiply(bluredDn);
+        Eigen::SparseMatrix<float> A_smooth = Dm - Dn * bluredDn;
         // SparseMatrix<float> A_diag(nvertices);
-        SparseMatrix<float> M(nvertices);
-        SparseMatrix<float> A_data(nvertices);
-        SparseMatrix<float> A(nvertices);
+        Eigen::SparseMatrix<float> M(nvertices,nvertices);
+        Eigen::SparseMatrix<float> A_data(nvertices,nvertices);
+        Eigen::SparseMatrix<float> A(nvertices,nvertices);
         std::vector<float> w_splat;
         std::vector<float> xw(x.size());
         std::vector<float> b;
@@ -678,7 +688,7 @@ public:
         std::vector<float> yhat;
         Splat(w,w_splat);
         diags(w_splat,A_data);
-        A =  (A_smooth + A_data).multiply(bs_param.lam);
+        A =  (A_smooth + A_data) * (bs_param.lam);
         for (int i = 0; i < x.size(); i++) {
             xw[i] = x[i] * w[i];
         }
@@ -686,13 +696,13 @@ public:
         Splat(xw,b);
 
         for (int i = 0; i < nvertices; i++) {
-            if(A.get(i+1,i+1) > bs_param.A_diag_min)
+            if(A(i,i) > bs_param.A_diag_min)
             {
-                M.set(1.0/A.get(i+1,i+1),i+1,i+1);
+                M.insert(i,i) = 1.0/A(i,i);
             }
             else
             {
-                M.set(1.0/bs_param.A_diag_min,i+1,i+1);
+                M.insert(i,i) = 1.0/bs_param.A_diag_min;
             }
         }
 
@@ -709,12 +719,16 @@ public:
 
 
     void Splat(std::vector<float>& x, std::vector<float>& result) {
-        result = S.multiply(x);
+        Eigen::VectorXd v(x.data());
+        result = S * v;
     }
 
 
     void Slice(std::vector<float>& y, std::vector<float>& result) {
-        result = S.transpose().multiply(y);
+        Eigen::VectorXd v(y.data());
+        Eigen::VectorXd vres = S.transpose() * v;
+        vector<float> vec(vres.data(), vres.data() + vres.rows() * vres.cols());
+        result = vec;
     }
 
     void Blur(std::vector<float>& x, std::vector<float>& result)
@@ -730,7 +744,8 @@ public:
             result[i] = 2 * dim * x[i];
         }
         for (int i = 0; i < dim; i++) {
-            std::vector<float> blured = blurs[i].multiply(x);
+            Eigen::VectorXd v(x.data());
+            std::vector<float> blured = blurs[i] * v;
             for (int i = 0; i < nvertices; i++) {
                 result[i] += blured[i];
             }
@@ -738,17 +753,17 @@ public:
 
     }
 
-    void Blur(SparseMatrix<float>& x, SparseMatrix<float>& result)
+    void Blur(Eigen::SparseMatrix<float>& x, Eigen::SparseMatrix<float>& result)
     {
-        if(x.getRowCount() != nvertices || x.getColumnCount() != nvertices)
+        if(x.rows() != nvertices || x.cols() != nvertices)
         {
-            std::cout << "x.getRowCount() != nvertices || x.getColumnCount != nvertices" << std::endl;
+            std::cout << "x.rows() != nvertices || x.cols() != nvertices" << std::endl;
             exit(-1);
         }
 
-        result = x.multiply(((float)(2.0 * dim)));
+        result = x * (2.0 * dim);
         for (int i = 0; i < dim; i++) {
-            result = result.add(blurs[i].multiply(x));
+            result = result + blurs[i] * x;
         }
 
     }
@@ -820,20 +835,20 @@ public:
 
     }
 
-    void csr_matrix(SparseMatrix<float>& SpMat, std::vector<float>& values,
+    void csr_matrix(Eigen::SparseMatrix<float>& SpMat, std::vector<float>& values,
                     std::vector<int>& rows, std::vector<int>& cols)
     {
-        SparseMatrix<float> mat(rows.size(),cols.size());
+        Eigen::SparseMatrix<float> mat(rows.size(),cols.size());
         for (int i = 0; i < values.size(); i++) {
-            mat.set(values[i],rows[i]+1,cols[i]+1);
+            mat.insert(rows[i],cols[i]) = values[i];
         }
         SpMat = mat;
     }
 
-    void diags(std::vector<float>& v,SparseMatrix<float>& m) {
-        m = SparseMatrix<float>(v.size());
+    void diags(std::vector<float>& v,Eigen::SparseMatrix<float>& m) {
+        m = Eigen::SparseMatrix<float>(v.size(),v.size());
         for (int i = 0; i < v.size(); i++) {
-            m.set(v[i],i+1,i+1);
+            m.insert(i,i) = v[i];
         }
     }
 
@@ -879,9 +894,9 @@ public:
         csr_matrix(S, ones_npixels, idx, arange_npixels);
 
         for (int i = 0; i < dim; i++) {
-            SparseMatrix<float> blur(nvertices,nvertices);
+            Eigen::SparseMatrix<float> blur(nvertices,nvertices);
             for (int j = -1; j <= 1; j++) {
-                SparseMatrix<float> blur_temp(nvertices,nvertices);
+                Eigen::SparseMatrix<float> blur_temp(nvertices,nvertices);
                 std::vector<float> neighbor_coords = unique_coords;
                 std::vector<float> neighbor_hashes;
                 std::vector<int> valid_coord;
@@ -895,7 +910,7 @@ public:
                 csr_matrix(blur_temp, ones_nvertices, valid_coord, neighbor_idx);
                 blur = blur + blur_temp;
             }
-            blurs.push_back(blurs);
+            blurs.push_back(blur);
         }
 
 
@@ -913,10 +928,10 @@ private:
     int pd;
     int vd;
     // std::vector<float> hash_vec;
-    std::vector<SparseMatrix<float> > blurs;
-    SparseMatrix<float> S;
-    SparseMatrix<float> Dn;
-    SparseMatrix<float> Dm;
+    std::vector<Eigen::SparseMatrix<float> > blurs;
+    Eigen::SparseMatrix<float> S;
+    Eigen::SparseMatrix<float> Dn;
+    Eigen::SparseMatrix<float> Dm;
 
     struct grid_params
     {
@@ -995,10 +1010,7 @@ void bilateral(cv::Mat& reference,cv::Mat& target, float spatialSigma, float lum
     now = clock();
     printf( "now is %f seconds\n", (double)(now) / CLOCKS_PER_SEC);
 
-    BilateralGrid::solve(&positions[0], 5,
-                                    &values[0], 4,
-                                    reference.cols*reference.rows,
-                                    &values[0]);
+    BilateralGrid::solve(positions, 5, values, 4, reference.cols*reference.rows, values);
 
     // Divide through by the homogeneous coordinate and store the
     // result back to the image
