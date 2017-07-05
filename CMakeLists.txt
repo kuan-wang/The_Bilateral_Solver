@@ -12,15 +12,16 @@ project( Bilateral_solver )
 
 
 find_package( OpenCV REQUIRED )
-find_package(Eigen3 REQUIRED)
+#find_package(Eigen3 REQUIRED)
 
 #set(Eigen3_DIR " /usr/local/include/eigen3")
 
-message( ${Eigen3_DIR})
+#message( ${Eigen3_DIR})
 
 include_directories(
 ${OpenCV_INCLUDE_DIRS}
-${EIGEN3_INCLUDE_DIR}
+#${EIGEN3_INCLUDE_DIR}
+/home/key/eigen3/include/eigen3/
 )
 
 
@@ -39,7 +40,7 @@ BilateralGrid.cpp
 
 target_link_libraries(${PROJECT_NAME}
 ${OpenCV_LIBS}
-${EIGEN3_LIBS}
+#${EIGEN3_LIBS}
 )
 
 add_executable( Colorize colorization.cpp)
