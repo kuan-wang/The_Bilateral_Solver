@@ -32,7 +32,7 @@
 
 
 
-using namespace Eigen;
+// using namespace Eigen;
 using std::vector;
 
 // Hash table implementation for permutohedral lattice.
