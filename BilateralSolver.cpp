@@ -25,6 +25,7 @@
 #include <math.h>
 #include <cmath>
 #include <vector>
+#include <set>
 #include <memory>
 //
 // // #include "Sparse-Matrix/src/SparseMatrix/SparseMatrix.cpp"
@@ -674,8 +675,13 @@ public:
 
     void solve(std::vector<double>& x, int pd, std::vector<double>& w,int vd, int n,std::vector<double>& out) {
 
+        compute_factorization(x);
+
+        bistochastize(10);
+
         Eigen::SparseMatrix<double> bluredDn(nvertices,nvertices);
         Blur(Dn,bluredDn);
+	    std::cout << "start Blur(Dn,bluredDn)" << std::endl;
         Eigen::SparseMatrix<double> A_smooth = Dm - Dn * bluredDn;
         // SparseMatrix<double> A_diag(nvertices);
         Eigen::SparseMatrix<double> M(nvertices,nvertices);
@@ -851,26 +857,57 @@ public:
     }
 
 
+    //
+    //
+    // void unique(std::vector<double>& hashed_coords, std::vector<double>& unique_hashes,
+    //             std::vector<int>& unique_idx,std::vector<int>& idx)
+    // {
+    //     std::cout << "for 1" << std::endl;
+    //     for (int i = 0; i < hashed_coords.size(); i++) {
+    //         if(std::find(unique_hashes.begin(), unique_hashes.end(), hashed_coords[i]) == unique_hashes.end())
+    //             unique_hashes.push_back(hashed_coords[i]);
+    //     }
+    //     std::cout << "sort 1" << std::endl;
+    //     std::sort(unique_hashes.begin(), unique_hashes.end());
+    //
+    //     std::cout << "for 2" << std::endl;
+    //     for (int i = 0; i < hashed_coords.size(); i++) {
+    //         std::vector<double>::iterator iter = std::find(unique_hashes.begin(), unique_hashes.end(), hashed_coords[i]);
+    //         idx.push_back(std::distance(unique_hashes.begin(),iter));
+    //     }
+    //
+    //     std::cout << "for 3" << std::endl;
+    //     for (int i = 0; i < unique_hashes.size(); i++) {
+    //         std::vector<double>::iterator iter = std::find(hashed_coords.begin(), hashed_coords.end(), unique_hashes[i]);
+    //         unique_idx.push_back(std::distance(hashed_coords.begin(),iter));
+    //     }
+    //
+    // }
+    //
+
 
 
     void unique(std::vector<double>& hashed_coords, std::vector<double>& unique_hashes,
                 std::vector<int>& unique_idx,std::vector<int>& idx)
     {
+        std::set<double> input;
+        std::cout << "for 1" << std::endl;
         for (int i = 0; i < hashed_coords.size(); i++) {
-            if(std::find(unique_hashes.begin(), unique_hashes.end(), hashed_coords[i]) == unique_hashes.end())
-                unique_hashes.push_back(hashed_coords[i]);
+            input.insert(hashed_coords[i]);
         }
-        std::sort(unique_hashes.begin(), unique_hashes.end());
+        unique_hashes.resize(input.size());
+        unique_idx.resize(input.size(),-1);
+        idx.resize(npixels);
+        std::copy(input.begin(),input.end(),unique_hashes.begin());
 
+        std::cout << "for 2" << std::endl;
         for (int i = 0; i < hashed_coords.size(); i++) {
-            std::vector<double>::iterator iter = std::find(unique_hashes.begin(), unique_hashes.end(), hashed_coords[i]);
-            idx.push_back(std::distance(unique_hashes.begin(),iter));
+            std::set<double>::iterator iter = input.find(hashed_coords[i]);
+            idx.push_back(std::distance(input.begin(),iter));
+            if(unique_idx[idx[idx.size()-1]] < 0) unique_idx[idx[idx.size()-1]] = i;
         }
 
-        for (int i = 0; i < unique_hashes.size(); i++) {
-            std::vector<double>::iterator iter = std::find(hashed_coords.begin(), hashed_coords.end(), unique_hashes[i]);
-            unique_idx.push_back(std::distance(hashed_coords.begin(),iter));
-        }
+        std::cout << "for 2 end" << std::endl;
 
     }
 
@@ -894,11 +931,9 @@ public:
     void csr_matrix(Eigen::SparseMatrix<double>& spmat, std::vector<double>& values,
                     std::vector<int>& rows, std::vector<int>& cols)
     {
-        Eigen::SparseMatrix<double> mat(rows.size(),cols.size());
         for (int i = 0; i < values.size(); i++) {
-            mat.insert(rows[i],cols[i]) = values[i];
+            spmat.insert(rows[i],cols[i]) = values[i];
         }
-        spmat = mat;
     }
 
     void diags(std::vector<double>& v,Eigen::SparseMatrix<double>& m) {
@@ -929,26 +964,32 @@ public:
         std::vector<int> unique_idx;
         std::vector<int> idx;
         std::vector<double> ones_npixels(npixels,1.0);
-        std::vector<double> ones_nvertices(nvertices,1.0);
         std::vector<int> arange_npixels(npixels);
 
         for (int i = 0; i < npixels; i++) {
             arange_npixels.push_back(i);
         }
 
+        std::cout << "start hash_coords(coords_flat,hash_coords)" << std::endl;
         hash_coords(coords_flat,hashed_coords);
 
         unique(hashed_coords,unique_hashes,unique_idx,idx);
+        std::cout << "finish unique()" << std::endl;
 
         nvertices = unique_idx.size();
+        std::vector<double> ones_nvertices(nvertices,1.0);
+        S = Eigen::SparseMatrix<double>(npixels,nvertices);
         for (int i = 0; i < nvertices; i++) {
             for (int j = 0; j < dim; j++) {
                 unique_coords.push_back(coords_flat[unique_idx[i]*dim+j]);
             }
         }
 
+        std::cout << "start Construct csr_matrix S" << std::endl;
         csr_matrix(S, ones_npixels, idx, arange_npixels);
 
+
+        std::cout << "start Construct blurs" << std::endl;
         for (int i = 0; i < dim; i++) {
             Eigen::SparseMatrix<double> blur(nvertices,nvertices);
             for (int j = -1; j <= 1; j++) {
@@ -966,6 +1007,7 @@ public:
                 csr_matrix(blur_temp, ones_nvertices, valid_coord, neighbor_idx);
                 blur = blur + blur_temp;
             }
+            std::cout << "blur"<< i << std::endl;
             blurs.push_back(blur);
         }
 
@@ -1062,11 +1104,12 @@ void bilateral(cv::Mat& reference,cv::Mat& target, double spatialSigma, double l
         }
     }
 
-	std::cout << "start PermutohedralLattice::filter" << std::endl;
+	std::cout << "start BilateralGrid" << std::endl;
     now = clock();
     printf( "now is %f seconds\n", (double)(now) / CLOCKS_PER_SEC);
 
     BilateralGrid grid(5, 4, reference.cols*reference.rows);
+	std::cout << "start BilateralGrid::solve" << std::endl;
     grid.solve(positions, 5, values, 4, reference.cols*reference.rows, values);
 
     // Divide through by the homogeneous coordinate and store the
@@ -1097,7 +1140,8 @@ int main(int argc, char const *argv[]) {
     std::cout << "hello opencv" << '\n';
     cv::Mat im = cv::imread(argv[1]);
     cv::Mat im1 = cv::imread(argv[1]);
-    cv::Mat target = cv::imread(argv[2],0);
+    cv::Mat target = cv::imread(argv[2]);
+    // cv::Mat target = cv::imread(argv[2],0);
 
 	cvtColor(im, im, cv::COLOR_BGR2YCrCb);
 	cvtColor(target, target, cv::COLOR_BGR2YCrCb);
