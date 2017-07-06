@@ -661,7 +661,7 @@ public:
     // pd : dimensionality of position vectors
     // vd : dimensionality of value vectors
     // n : number of points in the input
-    BilateralGrid(int pd, int vd, int n) :
+    BilateralGrid(std::vector<double>& reference, int pd, int vd, int n) :
         dim(pd), vd(vd), npixels(n) {
 
         // Allocate storage for various arrays
@@ -669,15 +669,15 @@ public:
         bs_param = bs_params();
         grid_param = grid_params();
 
+        compute_factorization(reference);
+
+        bistochastize(10);
 
     }
 
 
     void solve(std::vector<double>& x, int pd, std::vector<double>& w,int vd, int n,std::vector<double>& out) {
 
-        compute_factorization(x);
-
-        bistochastize(10);
 
         Eigen::SparseMatrix<double> bluredDn(nvertices,nvertices);
         Blur(Dn,bluredDn);
@@ -741,8 +741,29 @@ public:
         for (int i = 0; i < x.size(); i++) {
             v.coeffRef(i) = x[i];
         }
+        std::cout << "x.size:" << x.size() << std::endl;
         Eigen::SparseVector<double> vres(nvertices);
-        vres = S*v;
+        std::cout << "nvertices:" << nvertices << std::endl;
+        std::cout << "S.size" << S.transpose().rows() <<" x "<<S.transpose().cols() << std::endl;
+        vres = S.transpose()*v;
+        // std::cout << "vres:" <<  (S.transpose()*v).rows() << std::endl;
+        // std::cout << "vres:" <<  (S.transpose()*v).cols() << std::endl;
+        //
+        // std::cout << "testm*testv" << std::endl;
+        // Eigen::SparseVector<double> testv(4);
+        // Eigen::SparseMatrix<double> testm(4,5);
+        // for (size_t i = 0; i < 4; i++) {
+        //     for (size_t j = 0; j < 5; j++) {
+        //         testm.insert(i,j) = (double)(i*j);
+        //     }
+        // }
+        //
+        // for (size_t i = 0; i < 4; i++) {
+        //     testv.coeffRef(i) = (double)i;
+        // }
+        // std::cout << "testm" << testm << std::endl;
+        // std::cout << "testv" << testv << std::endl;
+        // std::cout << "testm*testv" << testm.transpose()*testv << std::endl;
 
         for(Eigen::SparseVector<double>::InnerIterator it(vres); it; ++it)
         {
@@ -834,9 +855,10 @@ public:
     void bistochastize(int maxiter = 10) {
         std::vector<double> ones_npixels(npixels,1.0);
         std::vector<double> n(nvertices,1.0);
-        std::vector<double> m;
+        std::vector<double> m(nvertices);
         Splat(ones_npixels,m);
 
+        std::cout << "m:" << std::endl;
         for (int i = 0; i < maxiter; i++) {
             std::vector<double> bluredn;
             Blur(n,bluredn);
@@ -884,6 +906,19 @@ public:
     //
     // }
     //
+    int binarySearchRecursive(double a[],int low,int high,double key){
+        if(low>high)
+            return -(low+1);
+
+        int mid=low+(high-low)/2;
+        if(key<a[mid])
+            return binarySearchRecursive(a,low,mid-1,key);
+        else if(key > a[mid])
+            return binarySearchRecursive(a,mid+1,high,key);
+        else
+            return mid;
+
+    }
 
 
 
@@ -892,19 +927,26 @@ public:
     {
         std::set<double> input;
         std::cout << "for 1" << std::endl;
+        std::cout << "hashed_coords size" <<hashed_coords.size()<< std::endl;
         for (int i = 0; i < hashed_coords.size(); i++) {
+            // std::cout << "hashed_coords:"<<hashed_coords[i] << std::endl;
             input.insert(hashed_coords[i]);
         }
         unique_hashes.resize(input.size());
         unique_idx.resize(input.size(),-1);
         idx.resize(npixels);
         std::copy(input.begin(),input.end(),unique_hashes.begin());
+        // std::cout << "input :" <<unique_hashes<< std::endl;
+        std::cout << "input size" <<input.size()<< std::endl;
 
         std::cout << "for 2" << std::endl;
         for (int i = 0; i < hashed_coords.size(); i++) {
-            std::set<double>::iterator iter = input.find(hashed_coords[i]);
-            idx.push_back(std::distance(input.begin(),iter));
-            if(unique_idx[idx[idx.size()-1]] < 0) unique_idx[idx[idx.size()-1]] = i;
+            int id = binarySearchRecursive(&unique_hashes[0],0,input.size(),hashed_coords[i]);
+            if(id >= 0)
+            {
+                idx.push_back(id);
+                if(unique_idx[id] < 0) unique_idx[id] = i;
+            }
         }
 
         std::cout << "for 2 end" << std::endl;
@@ -918,13 +960,15 @@ public:
         valid_idx.clear();
         locs.clear();
         for (int i = 0; i < candidates.size(); i++) {
-            std::vector<double>::iterator iter = binary_find(valid.begin(), valid.end(), candidates[i]);
-            if(iter != valid.end())
+            int id = binarySearchRecursive(&valid[0],0,candidates.size(),candidates[i]);
+            if(id >= 0)
             {
-                locs.push_back(std::distance(valid.begin(), iter));
+                locs.push_back(id);
                 valid_idx.push_back(i);
             }
         }
+        // std::cout << "candidates.size()" << candidates.size() << std::endl;
+        // std::cout << "valid_idx.size():"<< valid_idx.size() << std::endl;
 
     }
 
@@ -947,10 +991,10 @@ public:
     {
         double max_val = 255.0;
         hashed_coords.clear();
-        for (int i = 0; i < npixels; i++) {
+        for (int i = 0; i < coords_flat.size()/dim; i++) {
             double hash = 0;
             for (int j = 0; j < dim; j++) {
-                hash += coords_flat[i*dim+j]*max_val;
+                hash += coords_flat[i*dim+j] + hash*max_val;
             }
             hashed_coords.push_back(hash);
         }
@@ -977,7 +1021,6 @@ public:
         std::cout << "finish unique()" << std::endl;
 
         nvertices = unique_idx.size();
-        std::vector<double> ones_nvertices(nvertices,1.0);
         S = Eigen::SparseMatrix<double>(npixels,nvertices);
         for (int i = 0; i < nvertices; i++) {
             for (int j = 0; j < dim; j++) {
@@ -993,6 +1036,7 @@ public:
         for (int i = 0; i < dim; i++) {
             Eigen::SparseMatrix<double> blur(nvertices,nvertices);
             for (int j = -1; j <= 1; j++) {
+                if(j == 0) continue;
                 Eigen::SparseMatrix<double> blur_temp(nvertices,nvertices);
                 std::vector<double> neighbor_coords = unique_coords;
                 std::vector<double> neighbor_hashes;
@@ -1004,7 +1048,10 @@ public:
                 }
                 hash_coords(neighbor_coords,neighbor_hashes);
                 get_valid_idx(unique_hashes,neighbor_hashes,valid_coord,neighbor_idx);
-                csr_matrix(blur_temp, ones_nvertices, valid_coord, neighbor_idx);
+                std::vector<double> ones_valid_coord(valid_coord.size(),1.0);
+                // std::cout <<i<<j<< "nvertices,valid_coord.size,neighbor_idx.size:"<< nvertices<<valid_coord.size()<<neighbor_idx.size() << std::endl;
+                csr_matrix(blur_temp, ones_valid_coord, valid_coord, neighbor_idx);
+                // std::cout << "blur_temp:"<< blur_temp << std::endl;
                 blur = blur + blur_temp;
             }
             std::cout << "blur"<< i << std::endl;
@@ -1069,7 +1116,7 @@ private:
 
 // A bilateral solver of a color image with the given spatial standard
 // deviation and color-space standard deviation
-void bilateral(cv::Mat& reference,cv::Mat& target, double spatialSigma, double lumaSigma, double chromaSigma)
+void bilateral(cv::Mat& reference,cv::Mat& target, cv::Mat& confidence, double spatialSigma, double lumaSigma, double chromaSigma)
 {
 
     if(reference.cols != target.cols || reference.rows != target.rows)
@@ -1079,8 +1126,9 @@ void bilateral(cv::Mat& reference,cv::Mat& target, double spatialSigma, double l
 
     // Construct the five-dimensional position vectors and
     // four-dimensional value vectors
-    std::vector<double> positions(reference.cols*reference.rows*5);
-    std::vector<double> values(reference.cols*reference.rows*4);
+    std::vector<double> ref(reference.cols*reference.rows*5);
+    std::vector<double> tar(reference.cols*reference.rows);
+    std::vector<double> con(reference.cols*reference.rows);
     int idx = 0;
 
     clock_t now;
@@ -1089,17 +1137,18 @@ void bilateral(cv::Mat& reference,cv::Mat& target, double spatialSigma, double l
     printf( "now is %f seconds\n", (double)(now) / CLOCKS_PER_SEC);
     for (int y = 0; y < reference.cols; y++) {
         for (int x = 0; x < reference.rows; x++) {
-            positions[idx*5+0] = x/spatialSigma;
-            positions[idx*5+1] = y/spatialSigma;
-            positions[idx*5+2] = reference.at<cv::Vec3b>(x,y)[0]/lumaSigma;
-            positions[idx*5+3] = reference.at<cv::Vec3b>(x,y)[1]/chromaSigma;
-            positions[idx*5+4] = reference.at<cv::Vec3b>(x,y)[2]/chromaSigma;
-            values[idx*4+0] = target.at<uchar>(x,y);
+            ref[idx*5+0] = ceilf(x/spatialSigma);
+            ref[idx*5+1] = ceilf(y/spatialSigma);
+            ref[idx*5+2] = ceilf(reference.at<cv::Vec3b>(x,y)[0]/lumaSigma);
+            ref[idx*5+3] = ceilf(reference.at<cv::Vec3b>(x,y)[1]/chromaSigma);
+            ref[idx*5+4] = ceilf(reference.at<cv::Vec3b>(x,y)[2]/chromaSigma);
+            tar[idx] = target.at<cv::Vec3b>(x,y)[0];
+            con[idx] = confidence.at<cv::Vec3b>(x,y)[0];
             // values[idx*4+1] = target.at<uchar>(x,y);
             // values[idx*4+2] = target.at<uchar>(x,y);
-            values[idx*4+1] = 1.0f;
-            values[idx*4+2] = 1.0f;
-            values[idx*4+3] = 1.0f;
+            // values[idx*4+1] = 1.0f;
+            // values[idx*4+2] = 1.0f;
+            // values[idx*4+3] = 1.0f;
             idx++;
         }
     }
@@ -1108,17 +1157,17 @@ void bilateral(cv::Mat& reference,cv::Mat& target, double spatialSigma, double l
     now = clock();
     printf( "now is %f seconds\n", (double)(now) / CLOCKS_PER_SEC);
 
-    BilateralGrid grid(5, 4, reference.cols*reference.rows);
+    BilateralGrid grid(ref,5, 1, reference.cols*reference.rows);
 	std::cout << "start BilateralGrid::solve" << std::endl;
-    grid.solve(positions, 5, values, 4, reference.cols*reference.rows, values);
+    grid.solve(tar, 5, con, 1, reference.cols*reference.rows, tar);
 
     // Divide through by the homogeneous coordinate and store the
     // result back to the image
     idx = 0;
     for (int y = 0; y < reference.cols; y++) {
         for (int x = 0; x < reference.rows; x++) {
-            double w = values[idx*4+3];
-            target.at<uchar>(x,y) = values[idx*4+0]/w;
+            // double w = values[idx*4+3];
+            target.at<cv::Vec3b>(x,y)[0] = tar[idx];
             // target.at<cv::uchar>(x,y) = values[idx*4+1]/w;
             // target.at<cv::uchar>(x,y) = values[idx*4+2]/w;
             // target.at<cv::Vec3b>(x,y)[0] = values[idx*4+0]/w;
@@ -1141,10 +1190,12 @@ int main(int argc, char const *argv[]) {
     cv::Mat im = cv::imread(argv[1]);
     cv::Mat im1 = cv::imread(argv[1]);
     cv::Mat target = cv::imread(argv[2]);
+    cv::Mat confidence = cv::imread(argv[3]);
     // cv::Mat target = cv::imread(argv[2],0);
 
 	cvtColor(im, im, cv::COLOR_BGR2YCrCb);
 	cvtColor(target, target, cv::COLOR_BGR2YCrCb);
+	cvtColor(confidence, confidence, cv::COLOR_BGR2YCrCb);
 
     // cv::Mat im1 = cv::imread("flower8.jpg");
     std::cout << "im:" << im.cols<<"x"<< im.rows<< std::endl;
@@ -1180,7 +1231,7 @@ int main(int argc, char const *argv[]) {
     now = clock();
     printf( "now is %f seconds\n", (double)(now) / CLOCKS_PER_SEC);
 	// bilateral(im,8.0,4.0);
-	bilateral(im, target, 16.0, 8.0, 8.0);
+	bilateral(im, target, confidence, 8.0, 4.0, 4.0);
 	// bilateral(im,64.0,32.0);
     finish = clock();
     duration = (double)(finish - start) / CLOCKS_PER_SEC;
