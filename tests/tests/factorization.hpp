@@ -1,7 +1,28 @@
 
+
+// #ifndef npixels
+// #define npixels 10
+// #endif
+//
+// #ifndef dim
+// #define dim 5
+// #endif
+
+
+
 #ifndef _FACTORIZATION_HPP_
 #define _FACTORIZATION_HPP_
 
+
+#include "hashcoords.hpp"
+#include "unique.hpp"
+#include "csrmatrix.hpp"
+#include "getvalididx.hpp"
+#include "testslib.hpp"
+
+
+Eigen::SparseMatrix<double> S;
+std::vector<Eigen::SparseMatrix<double> > blurs;
 
     void compute_factorization(std::vector<double>& coords_flat)
     {
@@ -63,5 +84,18 @@
 
 
     }
+
+    void test_compute_factorization()
+    {
+        std::vector<double> coords_flat = generateRandomVector<double>(npixels*dim);
+        compute_factorization(coords_flat);
+
+        std::cout << "S:" << std::endl;
+        std::cout << S << std::endl;
+        std::cout << "blurs:" << std::endl;
+        PrintVector(blurs);
+
+    }
+
 
 #endif //_FACTORIZATION_HPP_

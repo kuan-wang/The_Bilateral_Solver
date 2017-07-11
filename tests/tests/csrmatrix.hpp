@@ -1,26 +1,51 @@
 
+
 #ifndef _CSRMATRIX_HPP_
 #define _CSRMATRIX_HPP_
 
+#include <Eigen/Dense>
+#include <Eigen/SparseCore>
+#include <Eigen/SparseCholesky>
+#include <Eigen/IterativeLinearSolvers>
+#include <Eigen/Sparse>
 
 
-    void get_valid_idx(std::vector<double>& valid, std::vector<double>& candidates,
-                        std::vector<int>& valid_idx, std::vector<int>& locs)
+#include <iostream>
+#include <vector>
+
+#include "testslib.hpp"
+
+
+    void csr_matrix(Eigen::SparseMatrix<double>& spmat, std::vector<double>& values,
+                    std::vector<int>& rows, std::vector<int>& cols)
     {
-        valid_idx.clear();
-        locs.clear();
-        for (int i = 0; i < candidates.size(); i++) {
-            int id = binarySearchRecursive(&valid[0],0,candidates.size(),candidates[i]);
-            if(id >= 0)
-            {
-                locs.push_back(id);
-                valid_idx.push_back(i);
-            }
+        for (int i = 0; i < values.size(); i++) {
+            spmat.insert(rows[i],cols[i]) = values[i];
         }
-        // std::cout << "candidates.size()" << candidates.size() << std::endl;
-        // std::cout << "valid_idx.size():"<< valid_idx.size() << std::endl;
+    }
+
+
+    void test_csr_matrix()
+    {
+        Eigen::SparseMatrix<double> spmat(npixels*2, npixels*3);
+        std::vector<double> values = generateRandomVector<double>(npixels*2);
+        std::vector<int> rows = generateRandomVector<int>(npixels*2);
+        std::vector<int> cols = generateRandomVector<int>(npixels*2);
+
+        csr_matrix(spmat, values, rows, cols);
+
+        std::cout << "values:" << std::endl;
+        PrintVector(values);
+        std::cout << "rows:" << std::endl;
+        PrintVector(rows);
+        std::cout << "cols:" << std::endl;
+        PrintVector(cols);
+        std::cout << "spmat:" << std::endl;
+        std::cout << spmat << std::endl;
+
 
     }
+
 
 
 #endif //_CSRMATRIX_HPP_

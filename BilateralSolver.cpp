@@ -925,6 +925,12 @@ public:
     void unique(std::vector<double>& hashed_coords, std::vector<double>& unique_hashes,
                 std::vector<int>& unique_idx,std::vector<int>& idx)
     {
+
+        unique_idx.clear();
+        idx.clear();
+        unique_hashes.clear();
+
+
         std::set<double> input;
         std::cout << "for 1" << std::endl;
         std::cout << "hashed_coords size" <<hashed_coords.size()<< std::endl;
@@ -934,7 +940,6 @@ public:
         }
         unique_hashes.resize(input.size());
         unique_idx.resize(input.size(),-1);
-        idx.resize(npixels);
         std::copy(input.begin(),input.end(),unique_hashes.begin());
         // std::cout << "input :" <<unique_hashes<< std::endl;
         std::cout << "input size" <<input.size()<< std::endl;
