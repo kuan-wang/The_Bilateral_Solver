@@ -21,8 +21,6 @@
 #include "testslib.hpp"
 
 
-Eigen::SparseMatrix<double> S;
-std::vector<Eigen::SparseMatrix<double> > blurs;
 
     void compute_factorization(std::vector<double>& coords_flat)
     {

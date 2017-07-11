@@ -26,11 +26,6 @@
 	#define	__TESTSLIB_H__
 
 
-
-static int npixels = 30;
-static int nvertices = 10;
-static int dim = 5;
-
 	#include <string>
 	#include <vector>
 	#include <cstring>
@@ -40,7 +35,59 @@ static int dim = 5;
 	#include <exception>
     #include <unordered_set>
 
+
+	#include <Eigen/Dense>
+	#include <Eigen/SparseCore>
+	#include <Eigen/SparseCholesky>
+	#include <Eigen/IterativeLinearSolvers>
+	#include <Eigen/Sparse>
+
+
+
 	using namespace std;
+
+
+static int npixels = 30;
+static int nvertices = 10;
+static int dim = 5;
+static int pd = 5;
+static int vd = 4;
+static std::vector<Eigen::SparseMatrix<double> > blurs;
+static Eigen::SparseMatrix<double> S;
+static Eigen::SparseMatrix<double> Dn;
+static Eigen::SparseMatrix<double> Dm;
+
+    struct grid_params
+    {
+        double spatialSigma;
+        double lumaSigma;
+        double chromaSigma;
+        grid_params()
+        {
+            spatialSigma = 8.0;
+            lumaSigma = 4.0;
+            chromaSigma = 4.0;
+        }
+    };
+
+    struct bs_params
+    {
+        double lam;
+        double A_diag_min;
+        double cg_tol;
+        int cg_maxiter;
+        bs_params()
+        {
+            lam = 128.0;
+            A_diag_min = 1e-5;
+            cg_tol = 1e-5;
+            cg_maxiter = 25;
+        }
+    };
+
+static grid_params grid_param;
+static bs_params bs_param;
+
 
 
 	class FailureException : public exception
