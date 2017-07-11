@@ -30,7 +30,7 @@
         std::vector<int> unique_idx;
         std::vector<int> idx;
         std::vector<double> ones_npixels(npixels,1.0);
-        std::vector<int> arange_npixels(npixels);
+        std::vector<int> arange_npixels;
 
         for (int i = 0; i < npixels; i++) {
             arange_npixels.push_back(i);
@@ -42,17 +42,28 @@
         unique(hashed_coords,unique_hashes,unique_idx,idx);
         std::cout << "finish unique()" << std::endl;
 
+        std::cout << "hashed_coords:" << std::endl;
+        PrintVector(hashed_coords);
+        std::cout << "unique_hashes:" << std::endl;
+        PrintVector(unique_hashes);
+        std::cout << "unique_idx:" << std::endl;
+        PrintVector(unique_idx);
+        std::cout << "idx:" << std::endl;
+        PrintVector(idx);
+
+
         nvertices = unique_idx.size();
-        S = Eigen::SparseMatrix<double>(npixels,nvertices);
+        S = Eigen::SparseMatrix<double>(nvertices,npixels);
+
+        std::cout << "start Construct csr_matrix S" << std::endl;
+        csr_matrix(S, ones_npixels, idx, arange_npixels);
+
+
         for (int i = 0; i < nvertices; i++) {
             for (int j = 0; j < dim; j++) {
                 unique_coords.push_back(coords_flat[unique_idx[i]*dim+j]);
             }
         }
-
-        std::cout << "start Construct csr_matrix S" << std::endl;
-        csr_matrix(S, ones_npixels, idx, arange_npixels);
-
 
         std::cout << "start Construct blurs" << std::endl;
         for (int i = 0; i < dim; i++) {
@@ -69,12 +80,22 @@
                     neighbor_coords[k*dim+i] += j;
                 }
                 hash_coords(neighbor_coords,neighbor_hashes);
+            // std::cout << "neighbor_coords:" << std::endl;
+            // PrintVector(neighbor_coords);
+            // std::cout << "neighbor_hashes:" << std::endl;
+            // PrintVector(neighbor_hashes);
                 get_valid_idx(unique_hashes,neighbor_hashes,valid_coord,neighbor_idx);
                 std::vector<double> ones_valid_coord(valid_coord.size(),1.0);
                 // std::cout <<i<<j<< "nvertices,valid_coord.size,neighbor_idx.size:"<< nvertices<<valid_coord.size()<<neighbor_idx.size() << std::endl;
                 csr_matrix(blur_temp, ones_valid_coord, valid_coord, neighbor_idx);
+            // std::cout << "ones_valid_coord:" << std::endl;
+            // PrintVector(ones_valid_coord);
+            // std::cout << "valid_coord:" << std::endl;
+            // PrintVector(valid_coord);
+            // std::cout << "neighbor_idx:" << std::endl;
+            // PrintVector(neighbor_idx);
                 // std::cout << "blur_temp:"<< blur_temp << std::endl;
-                blur = blur + blur_temp;
+                // blur = blur + blur_temp;
             }
             std::cout << "blur"<< i << std::endl;
             blurs.push_back(blur);
@@ -88,9 +109,9 @@
         std::vector<double> coords_flat = generateRandomVector<double>(npixels*dim);
         compute_factorization(coords_flat);
 
-        std::cout << "S:" << std::endl;
-        std::cout << S << std::endl;
-        std::cout << "blurs:" << std::endl;
+        // std::cout << "S:" << std::endl;
+        // std::cout << S << std::endl;
+        // std::cout << "blurs:" << std::endl;
         PrintVector(blurs);
 
     }
