@@ -2,7 +2,14 @@
 #ifndef _BLUR_HPP_
 #define _BLUR_HPP_
 
-
+#include "splat.hpp"
+#include "slice.hpp"
+#include "unique.hpp"
+#include "testslib.hpp"
+#include "csrmatrix.hpp"
+#include "hashcoords.hpp"
+#include "getvalididx.hpp"
+#include "factorization.hpp"
 
 
 
@@ -50,6 +57,62 @@
 
     }
 
+
+    void test_blur()
+    {
+        std::vector<double> coords_flat = generateRandomVector<double>(npixels*dim);
+        compute_factorization(coords_flat);
+
+        std::vector<double> onesx(npixels,1);
+        std::vector<double> testv(npixels,-1);
+        std::vector<double> onesv(npixels,-1);
+        std::vector<double> testx = generateRandomVector<double>(npixels);
+        std::vector<double> spalt_result;
+        std::vector<double> blur_result;
+        std::vector<double> slice_result(npixels, -1);
+
+        std::vector<double> spalt_onesresult;
+        std::vector<double> blur_onesresult;
+        std::vector<double> slice_onesresult(npixels, -1);
+
+        Eigen::VectorXd VectorXd_result;
+        Eigen::SparseVector<double> SparseVector_result;
+        Eigen::SparseVector<double> SparseVector_onesresult;
+
+        Splat(testx, spalt_result);
+        Splat(onesx, spalt_onesresult);
+        // Splat(onesx, SparseVector_onesresult);
+        // Splat(testx, VectorXd_result);
+        // Splat(testx, result);
+        std::cout << "testx:" << std::endl;
+        PrintVector(testx);
+        std::cout << "spalt_result:" << std::endl;
+        PrintVector(spalt_result);
+        Blur(spalt_result, blur_result);
+        Blur(spalt_onesresult, blur_onesresult);
+        std::cout << "blur_result:" << std::endl;
+        PrintVector(blur_result);
+        Slice(blur_result, slice_result);
+        Slice(blur_onesresult, slice_onesresult);
+        std::cout << "slice_result:" << std::endl;
+        PrintVector(slice_result);
+        std::cout << "slice_onesresult:" << std::endl;
+        PrintVector(slice_onesresult);
+
+
+        // Slice(VectorXd_result, testv);
+        // Slice(SparseVector_onesresult, onesv);
+        // PrintVector(testv);
+        // PrintVector(onesv);
+
+        // Slice(testx, VectorXd_result);
+        // std::cout << VectorXd_result << std::endl;
+        // Slice(testx, result);
+        // PrintVector(result);
+        // std::cout << S << std::endl;
+
+
+    }
 
 
 

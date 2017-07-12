@@ -180,7 +180,7 @@ static bs_params bs_param;
 		vector<T> vector(size, 0);
 
 		for (int i = 0; i < size; i++) {
-			vector[i] = rand() % (3);
+			vector[i] = rand() % (2);
 			// vector[i] = rand() % 101;
 		}
 

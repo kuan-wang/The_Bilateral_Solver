@@ -13,20 +13,20 @@
 #include<opencv2/highgui.hpp>
 #include<opencv2/opencv.hpp>
 
+
+
+#include <set>
+#include <cmath>
+#include <math.h>
+#include <time.h>
+#include <vector>
+#include <memory>
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
-
-#include <algorithm>
 #include <iostream>
 #include <iterator>
-#include <vector>
-
-#include <math.h>
-#include <cmath>
-#include <vector>
-#include <set>
-#include <memory>
+#include <algorithm>
+#include <unordered_set>
 //
 // // #include "Sparse-Matrix/src/SparseMatrix/SparseMatrix.cpp"
 // // #include "ICCG.hpp"
@@ -570,56 +570,6 @@
 
 
 
-std::vector<double> unique(const cv::Mat& input, bool sort = false)
-{
-    if (input.channels() > 1 || input.type() != CV_32F)
-    {
-        std::cerr << "unique !!! Only works with CV_32F 1-channel Mat" << std::endl;
-        return std::vector<double>();
-    }
-
-    std::vector<double> out;
-    for (int y = 0; y < input.rows; ++y)
-    {
-        const double* row_ptr = input.ptr<double>(y);
-        for (int x = 0; x < input.cols; ++x)
-        {
-            double value = row_ptr[x];
-
-            if ( std::find(out.begin(), out.end(), value) == out.end() )
-                out.push_back(value);
-        }
-    }
-
-    if (sort)
-        std::sort(out.begin(), out.end());
-
-    return out;
-}
-//
-//
-//
-// // template<class ForwardIt, class T, class Compare=std::less<>>
-// // ForwardIt binary_find(ForwardIt first, ForwardIt last, const T& value, Compare comp={})
-// // {
-// //     // Note: BOTH type T and the type after ForwardIt is dereferenced
-// //     // must be implicitly convertible to BOTH Type1 and Type2, used in Compare.
-// //     // This is stricter than lower_bound requirement (see above)
-// //
-// //     first = std::lower_bound(first, last, value, comp);
-// //     return first != last && !comp(value, *first) ? first : last;
-// // }
-
-template<class ForwardIt, class T>
-ForwardIt binary_find(ForwardIt first, ForwardIt last, const T& value)
-{
-    // Note: BOTH type T and the type after ForwardIt is dereferenced
-    // must be implicitly convertible to BOTH Type1 and Type2, used in Compare.
-    // This is stricter than lower_bound requirement (see above)
-
-    first = std::lower_bound(first, last, value);
-    return (first != last) && (value < *first) ? first : last;
-}
 
 
 
@@ -675,8 +625,14 @@ public:
 
     }
 
+    void filt(std::vector<double>& x, int pd, std::vector<double>& w,int vd, int n,std::vector<double>& out) 
+    {
 
-    void solve(std::vector<double>& x, int pd, std::vector<double>& w,int vd, int n,std::vector<double>& out) {
+    }
+
+
+    void solve(std::vector<double>& x, int pd, std::vector<double>& w,int vd, int n,std::vector<double>& out)
+    {
 
 
         Eigen::SparseMatrix<double> bluredDn(nvertices,nvertices);
@@ -743,27 +699,9 @@ public:
         }
         std::cout << "x.size:" << x.size() << std::endl;
         Eigen::SparseVector<double> vres(nvertices);
+        result.resize(nvertices);
         std::cout << "nvertices:" << nvertices << std::endl;
-        std::cout << "S.size" << S.transpose().rows() <<" x "<<S.transpose().cols() << std::endl;
-        vres = S.transpose()*v;
-        // std::cout << "vres:" <<  (S.transpose()*v).rows() << std::endl;
-        // std::cout << "vres:" <<  (S.transpose()*v).cols() << std::endl;
-        //
-        // std::cout << "testm*testv" << std::endl;
-        // Eigen::SparseVector<double> testv(4);
-        // Eigen::SparseMatrix<double> testm(4,5);
-        // for (size_t i = 0; i < 4; i++) {
-        //     for (size_t j = 0; j < 5; j++) {
-        //         testm.insert(i,j) = (double)(i*j);
-        //     }
-        // }
-        //
-        // for (size_t i = 0; i < 4; i++) {
-        //     testv.coeffRef(i) = (double)i;
-        // }
-        // std::cout << "testm" << testm << std::endl;
-        // std::cout << "testv" << testv << std::endl;
-        // std::cout << "testm*testv" << testm.transpose()*testv << std::endl;
+        vres = S * v;
 
         for(Eigen::SparseVector<double>::InnerIterator it(vres); it; ++it)
         {
@@ -779,7 +717,13 @@ public:
         result = S*v;
     }
 
-
+    void Splat(std::vector<double>& x, Eigen::SparseVector<double>& result) {
+        Eigen::SparseVector<double> v(x.size());
+        for (int i = 0; i < x.size(); i++) {
+            v.coeffRef(i) = x[i];
+        }
+        result = S*v;
+    }
 
 
     void Slice(std::vector<double>& y, std::vector<double>& result) {
@@ -806,6 +750,18 @@ public:
             result[i] = vres(i);
         }
     }
+
+    void Slice(Eigen::SparseVector<double>& y, std::vector<double>& result) {
+        Eigen::SparseVector<double> vres(nvertices);
+        vres = S.transpose()*y;
+
+        for(int i = 0; i < vres.size();i++)
+        {
+            result[i] = vres.coeff(i);
+        }
+    }
+
+
 
 
     void Blur(std::vector<double>& x, std::vector<double>& result)
@@ -879,33 +835,7 @@ public:
     }
 
 
-    //
-    //
-    // void unique(std::vector<double>& hashed_coords, std::vector<double>& unique_hashes,
-    //             std::vector<int>& unique_idx,std::vector<int>& idx)
-    // {
-    //     std::cout << "for 1" << std::endl;
-    //     for (int i = 0; i < hashed_coords.size(); i++) {
-    //         if(std::find(unique_hashes.begin(), unique_hashes.end(), hashed_coords[i]) == unique_hashes.end())
-    //             unique_hashes.push_back(hashed_coords[i]);
-    //     }
-    //     std::cout << "sort 1" << std::endl;
-    //     std::sort(unique_hashes.begin(), unique_hashes.end());
-    //
-    //     std::cout << "for 2" << std::endl;
-    //     for (int i = 0; i < hashed_coords.size(); i++) {
-    //         std::vector<double>::iterator iter = std::find(unique_hashes.begin(), unique_hashes.end(), hashed_coords[i]);
-    //         idx.push_back(std::distance(unique_hashes.begin(),iter));
-    //     }
-    //
-    //     std::cout << "for 3" << std::endl;
-    //     for (int i = 0; i < unique_hashes.size(); i++) {
-    //         std::vector<double>::iterator iter = std::find(hashed_coords.begin(), hashed_coords.end(), unique_hashes[i]);
-    //         unique_idx.push_back(std::distance(hashed_coords.begin(),iter));
-    //     }
-    //
-    // }
-    //
+
     int binarySearchRecursive(double a[],int low,int high,double key){
         if(low>high)
             return -(low+1);
@@ -920,7 +850,35 @@ public:
 
     }
 
+    void unique(std::vector<double>& hashed_coords, std::unordered_set<double>& unique_hashes,
+                std::vector<int>& unique_idx, std::vector<int>& idx)
+    {
+        unique_idx.clear();
+        idx.clear();
+        std::cout << "for 1" << std::endl;
+        std::cout << "hashed_coords size" <<hashed_coords.size()<< std::endl;
+        for (int i = 0; i < hashed_coords.size(); i++) {
+            unique_hashes.insert(hashed_coords[i]);
+        }
+        unique_idx.resize(unique_hashes.size(),-1);
+        // idx.resize(npixels);
+        std::cout << "unique_hashes size" <<unique_hashes.size()<< std::endl;
 
+        std::cout << "for 2" << std::endl;
+        for (int i = 0; i < hashed_coords.size(); i++) {
+            // int id = binarySearchRecursive(&unique_hashes[0],0,input.size(),hashed_coords[i]);
+            std::unordered_set<double>::iterator got = unique_hashes.find (hashed_coords[i]);
+            if(got != unique_hashes.end())
+            {
+                int id = std::distance(unique_hashes.begin(), got);
+                idx.push_back(id);
+                if(unique_idx[id] < 0) unique_idx[id] = i;
+            }
+        }
+
+        std::cout << "for 2 end" << std::endl;
+
+    }
 
     void unique(std::vector<double>& hashed_coords, std::vector<double>& unique_hashes,
                 std::vector<int>& unique_idx,std::vector<int>& idx)
@@ -957,7 +915,6 @@ public:
         std::cout << "for 2 end" << std::endl;
 
     }
-
 
     void get_valid_idx(std::vector<double>& valid, std::vector<double>& candidates,
                         std::vector<int>& valid_idx, std::vector<int>& locs)
@@ -999,11 +956,13 @@ public:
         for (int i = 0; i < coords_flat.size()/dim; i++) {
             double hash = 0;
             for (int j = 0; j < dim; j++) {
-                hash += coords_flat[i*dim+j] + hash*max_val;
+                hash = coords_flat[i*dim+j] + hash*max_val;
+                // std::cout << "hash:"<< hash << std::endl;
             }
             hashed_coords.push_back(hash);
         }
     }
+
 
     void compute_factorization(std::vector<double>& coords_flat)
     {
@@ -1013,7 +972,7 @@ public:
         std::vector<int> unique_idx;
         std::vector<int> idx;
         std::vector<double> ones_npixels(npixels,1.0);
-        std::vector<int> arange_npixels(npixels);
+        std::vector<int> arange_npixels;
 
         for (int i = 0; i < npixels; i++) {
             arange_npixels.push_back(i);
@@ -1025,17 +984,28 @@ public:
         unique(hashed_coords,unique_hashes,unique_idx,idx);
         std::cout << "finish unique()" << std::endl;
 
+        std::cout << "hashed_coords:" << std::endl;
+        PrintVector(hashed_coords);
+        std::cout << "unique_hashes:" << std::endl;
+        PrintVector(unique_hashes);
+        std::cout << "unique_idx:" << std::endl;
+        PrintVector(unique_idx);
+        std::cout << "idx:" << std::endl;
+        PrintVector(idx);
+
+
         nvertices = unique_idx.size();
-        S = Eigen::SparseMatrix<double>(npixels,nvertices);
+        S = Eigen::SparseMatrix<double>(nvertices,npixels);
+
+        std::cout << "start Construct csr_matrix S" << std::endl;
+        csr_matrix(S, ones_npixels, idx, arange_npixels);
+
+
         for (int i = 0; i < nvertices; i++) {
             for (int j = 0; j < dim; j++) {
                 unique_coords.push_back(coords_flat[unique_idx[i]*dim+j]);
             }
         }
-
-        std::cout << "start Construct csr_matrix S" << std::endl;
-        csr_matrix(S, ones_npixels, idx, arange_npixels);
-
 
         std::cout << "start Construct blurs" << std::endl;
         for (int i = 0; i < dim; i++) {
@@ -1052,20 +1022,30 @@ public:
                     neighbor_coords[k*dim+i] += j;
                 }
                 hash_coords(neighbor_coords,neighbor_hashes);
+            // std::cout << "neighbor_coords:" << std::endl;
+            // PrintVector(neighbor_coords);
+            // std::cout << "neighbor_hashes:" << std::endl;
+            // PrintVector(neighbor_hashes);
                 get_valid_idx(unique_hashes,neighbor_hashes,valid_coord,neighbor_idx);
                 std::vector<double> ones_valid_coord(valid_coord.size(),1.0);
                 // std::cout <<i<<j<< "nvertices,valid_coord.size,neighbor_idx.size:"<< nvertices<<valid_coord.size()<<neighbor_idx.size() << std::endl;
                 csr_matrix(blur_temp, ones_valid_coord, valid_coord, neighbor_idx);
-                // std::cout << "blur_temp:"<< blur_temp << std::endl;
+            // std::cout << "ones_valid_coord:" << std::endl;
+            // PrintVector(ones_valid_coord);
+            // std::cout << "valid_coord:" << std::endl;
+            // PrintVector(valid_coord);
+            // std::cout << "neighbor_idx:" << std::endl;
+            // PrintVector(neighbor_idx);
+            //     std::cout << "blur_temp:"<< blur_temp << std::endl;
                 blur = blur + blur_temp;
             }
+            // std::cout << "blur:"<< blur << std::endl;
             std::cout << "blur"<< i << std::endl;
             blurs.push_back(blur);
         }
 
 
     }
-
 
 
 

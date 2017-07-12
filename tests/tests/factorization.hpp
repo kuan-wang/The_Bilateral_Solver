@@ -42,14 +42,14 @@
         unique(hashed_coords,unique_hashes,unique_idx,idx);
         std::cout << "finish unique()" << std::endl;
 
-        std::cout << "hashed_coords:" << std::endl;
-        PrintVector(hashed_coords);
-        std::cout << "unique_hashes:" << std::endl;
-        PrintVector(unique_hashes);
-        std::cout << "unique_idx:" << std::endl;
-        PrintVector(unique_idx);
-        std::cout << "idx:" << std::endl;
-        PrintVector(idx);
+        // std::cout << "hashed_coords:" << std::endl;
+        // PrintVector(hashed_coords);
+        // std::cout << "unique_hashes:" << std::endl;
+        // PrintVector(unique_hashes);
+        // std::cout << "unique_idx:" << std::endl;
+        // PrintVector(unique_idx);
+        // std::cout << "idx:" << std::endl;
+        // PrintVector(idx);
 
 
         nvertices = unique_idx.size();
@@ -94,9 +94,10 @@
             // PrintVector(valid_coord);
             // std::cout << "neighbor_idx:" << std::endl;
             // PrintVector(neighbor_idx);
-                // std::cout << "blur_temp:"<< blur_temp << std::endl;
-                // blur = blur + blur_temp;
+            //     std::cout << "blur_temp:"<< blur_temp << std::endl;
+                blur = blur + blur_temp;
             }
+            // std::cout << "blur:"<< blur << std::endl;
             std::cout << "blur"<< i << std::endl;
             blurs.push_back(blur);
         }
@@ -111,7 +112,7 @@
 
         // std::cout << "S:" << std::endl;
         // std::cout << S << std::endl;
-        // std::cout << "blurs:" << std::endl;
+        std::cout << "blurs:" << std::endl;
         PrintVector(blurs);
 
     }
