@@ -11,6 +11,7 @@
 #include "testslib.hpp"
 #include "csrmatrix.hpp"
 #include "hashcoords.hpp"
+#include "bistochastize.hpp"
 #include "getvalididx.hpp"
 #include "factorization.hpp"
 
@@ -21,66 +22,79 @@
 
 
 
-    void filt(std::vector<double>& x, std::vector<double>& w,std::vector<double>& out)
+    void solve(std::vector<double>& x, std::vector<double>& w,std::vector<double>& out)
     {
 
-        for (int i = 0; i < npixels; i++)
-        {
-            x[i] = x[i] * w[i];
+        Eigen::SparseMatrix<double> bluredDn(nvertices,nvertices);
+        Blur(Dn,bluredDn);
+	    std::cout << "start Blur(Dn,bluredDn)" << std::endl;
+        Eigen::SparseMatrix<double> A_smooth = Dm - Dn * bluredDn;
+
+
+        // SparseMatrix<double> A_diag(nvertices);
+        Eigen::SparseMatrix<double> M(nvertices,nvertices);
+        Eigen::SparseMatrix<double> A_data(nvertices,nvertices);
+        Eigen::SparseMatrix<double> A(nvertices,nvertices);
+        Eigen::VectorXd b(nvertices);
+        Eigen::VectorXd y(nvertices);
+        std::vector<double> w_splat;
+        std::vector<double> xw(x.size());
+        std::vector<double> y0;
+        std::vector<double> yhat;
+
+
+	    std::cout << "start Splat(w,w_splat)" << std::endl;
+        Splat(w,w_splat);
+        diags(w_splat,A_data);
+        A = bs_param.lam * A_smooth + A_data ;
+        for (int i = 0; i < x.size(); i++) {
+            xw[i] = x[i] * w[i];
         }
 
-        std::vector<double> spalt_result;
-        std::vector<double> blur_result;
-        std::vector<double> slice_result(npixels, -1);
+	    std::cout << "start Splat(xw,b)" << std::endl;
+        Splat(xw,b);
 
-        std::vector<double> spalt_wresult;
-        std::vector<double> blur_wresult;
-        std::vector<double> slice_wresult(npixels, -1);
-
-        std::vector<double> onesx(npixels,1);
-        std::vector<double> spalt_onesresult;
-        std::vector<double> blur_onesresult;
-        std::vector<double> slice_onesresult(npixels, -1);
-
-
-        Splat(x, spalt_result);
-        Splat(w, spalt_wresult);
-        Splat(onesx, spalt_onesresult);
-        // std::cout << "x:" << std::endl;
-        // PrintVector(x);
-        // std::cout << "spalt_result:" << std::endl;
-        // PrintVector(spalt_result);
-
-        Blur(spalt_result, blur_result);
-        Blur(spalt_wresult, blur_wresult);
-        Blur(spalt_onesresult, blur_onesresult);
-        // std::cout << "blur_result:" << std::endl;
-        // PrintVector(blur_result);
-
-        Slice(blur_result, slice_result);
-        Slice(blur_wresult, slice_wresult);
-        Slice(blur_onesresult, slice_onesresult);
-        // std::cout << "slice_result:" << std::endl;
-        // PrintVector(slice_result);
-        // std::cout << "slice_onesresult:" << std::endl;
-        // PrintVector(slice_onesresult);
-
-        out.resize(npixels);
-        for (int i = 0; i < npixels; i++)
-        {
-            out[i] = slice_result[i]/slice_wresult[i];
-            // out[i] = slice_result[i]/slice_onesresult[i];
-            // out[i] = slice_wresult[i]/slice_onesresult[i];
+        std::cout << "Construct A" << std::endl;
+        for (int i = 0; i < nvertices; i++) {
+            if(A.coeff(i,i) > bs_param.A_diag_min)
+            {
+                M.insert(i,i) = 1.0/A.coeff(i,i);
+            }
+            else
+            {
+                M.insert(i,i) = 1.0/bs_param.A_diag_min;
+            }
         }
+
+        std::cout << "Construct y0" << std::endl;
+        y0.resize(b.size());
+        for (int i = 0; i < b.size(); i++) {
+            y0[i] = b(i) / w_splat[i];
+        }
+        yhat = y0;       // why shold empty_like(y0)
+
+        std::cout << "solve" << std::endl;
+        // fill A and b
+        Eigen::ConjugateGradient<Eigen::SparseMatrix<double>, Eigen::Lower|Eigen::Upper> cg;
+        cg.compute(A);
+        for (size_t i = 0; i < bs_param.cg_maxiter; i++) {
+            y = cg.solve(b);
+            std::cout << "#iterations:     " << cg.iterations() << std::endl;
+            std::cout << "estimated error: " << cg.error()      << std::endl;
+            if(cg.error()  < bs_param.cg_tol) break;
+        }
+
+        Slice(y,out);
+
 
 
     }
 
 
-    void test_filt()
+    void test_solve()
     {
 
-        std::cout << "hello filter" << '\n';
+        std::cout << "hello solver" << '\n';
 
         clock_t now;
         now = clock();
@@ -112,7 +126,7 @@
 
     	std::cout << "start filling positions and values" << std::endl;
         now = clock();
-        printf( "filling : now is %f seconds\n", (double)(now) / CLOCKS_PER_SEC);
+        printf( "fill positions and values : now is %f seconds\n", (double)(now) / CLOCKS_PER_SEC);
         for (int y = 0; y < reference.cols; y++) {
             for (int x = 0; x < reference.rows; x++) {
                 ref[idx*5+0] = ceilf(x/spatialSigma);
@@ -120,6 +134,12 @@
                 ref[idx*5+2] = ceilf(reference.at<cv::Vec3b>(x,y)[0]/lumaSigma);
                 ref[idx*5+3] = ceilf(reference.at<cv::Vec3b>(x,y)[1]/chromaSigma);
                 ref[idx*5+4] = ceilf(reference.at<cv::Vec3b>(x,y)[2]/chromaSigma);
+
+                // ref[idx*5+0] = (x/spatialSigma);
+                // ref[idx*5+1] = (y/spatialSigma);
+                // ref[idx*5+2] = (reference.at<cv::Vec3b>(x,y)[0]/lumaSigma);
+                // ref[idx*5+3] = (reference.at<cv::Vec3b>(x,y)[1]/chromaSigma);
+                // ref[idx*5+4] = (reference.at<cv::Vec3b>(x,y)[2]/chromaSigma);
                 tar[idx] = target.at<cv::Vec3b>(x,y)[0];
                 con[idx] = confidence.at<cv::Vec3b>(x,y)[0];
                 // values[idx*4+1] = target.at<uchar>(x,y);
@@ -132,13 +152,19 @@
         }
 
 
+        now = clock();
+        printf( "compute_factorization : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
         compute_factorization(ref);
 
         now = clock();
-        printf( "filt : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
-        filt(tar,con,tar);
+        printf( "bistochastize : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        bistochastize();
+
         now = clock();
-        printf( "filted : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        printf( "solve :now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        solve(tar,con,tar);
+        now = clock();
+        printf( "solved :now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
 
         // Divide through by the homogeneous coordinate and store the
         // result back to the image
@@ -161,7 +187,7 @@
 
 
         now = clock();
-        printf( "finished : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        printf( "finished :now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
     	cv::imshow("input",im1);
     	cv::imshow("output",target);
     	cv::waitKey(0);

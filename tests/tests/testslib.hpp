@@ -26,6 +26,7 @@
 	#define	__TESTSLIB_H__
 
 
+	#include <time.h>
 	#include <string>
 	#include <vector>
 	#include <cstring>

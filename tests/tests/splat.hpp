@@ -20,10 +20,10 @@
         for (int i = 0; i < x.size(); i++) {
             v.coeffRef(i) = x[i];
         }
-        std::cout << "x.size:" << x.size() << std::endl;
+        // std::cout << "x.size:" << x.size() << std::endl;
         Eigen::SparseVector<double> vres(nvertices);
         result.resize(nvertices);
-        std::cout << "nvertices:" << nvertices << std::endl;
+        // std::cout << "nvertices:" << nvertices << std::endl;
         vres = S * v;
 
         for(Eigen::SparseVector<double>::InnerIterator it(vres); it; ++it)
