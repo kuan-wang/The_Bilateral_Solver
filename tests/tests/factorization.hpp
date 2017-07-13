@@ -30,13 +30,17 @@
         Eigen::MatrixXd unique_coords;
         std::vector<double> unique_hashes;
 
-        std::cout << "start hash_coords(coords_flat,hash_coords)" << std::endl;
+        clock_t now;
+        now = clock();
+        printf( "start hashcoords : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
         hash_coords(coords_flat,hashed_coords);
         // std::cout << "coords_flat:" << std::endl;
         // std::cout << coords_flat << std::endl;
         // std::cout << "hashed_coords:" << std::endl;
         // std::cout << hashed_coords << std::endl;
 
+        now = clock();
+        printf( "start unique : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
         unique(coords_flat, unique_coords, hashed_coords, unique_hashes);
         std::cout << "finish unique()" << std::endl;
 
@@ -51,7 +55,8 @@
         // }
 
 
-        std::cout << "start Construct blurs" << std::endl;
+        now = clock();
+        printf( "start construct blur : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
         for (int i = 0; i < dim; i++) {
             Eigen::SparseMatrix<double> blur(nvertices,nvertices);
             for (int j = -1; j <= 1; j++) {
