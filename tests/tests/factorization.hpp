@@ -98,12 +98,36 @@
         std::vector<double> unique_coords;
         std::vector<int> unique_idx;
         std::vector<int> idx;
-        std::vector<double> ones_npixels(npixels,1.0);
-        std::vector<int> arange_npixels;
+        // std::vector<double> ones_npixels(npixels,1.0);
+        std::vector<int> arange_npixels(npixels);
+        // std::vector<int> test_npixels(npixels*30);
 
+        clock_t now;
+        now = clock();
+        printf( "start test for : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+    // #pragma omp parallel for num_threads(4)
+    // #pragma omp parallel for
         for (int i = 0; i < npixels; i++) {
-            arange_npixels.push_back(i);
+            arange_npixels[i] = i;
         }
+    // // #pragma omp parallel for num_threads(4)
+    // // #pragma omp parallel for
+    //     for (int i = 0; i < npixels*10; i++) {
+    //         test_npixels[i] = i;
+    //     }
+    // // #pragma omp parallel for num_threads(4)
+    // // #pragma omp parallel for
+    //     for (int i = 0; i < npixels*10; i++) {
+    //         test_npixels[i] = i;
+    //     }
+    // // #pragma omp parallel for num_threads(4)
+    // // #pragma omp parallel for
+    //     for (int i = 0; i < npixels*10; i++) {
+    //         test_npixels[i] = i;
+    //     }
+
+        now = clock();
+        printf( "end for : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
 
         std::cout << "start hash_coords(coords_flat,hash_coords)" << std::endl;
         hash_coords(coords_flat,hashed_coords);
@@ -125,12 +149,14 @@
         S = Eigen::SparseMatrix<double>(nvertices,npixels);
 
         std::cout << "start Construct csr_matrix S" << std::endl;
-        csr_matrix(S, ones_npixels, idx, arange_npixels);
+        // csr_matrix(S, ones_npixels, idx, arange_npixels);
+        csr_matrix(S, idx, arange_npixels);
 
 
+        unique_coords.resize(nvertices*dim);
         for (int i = 0; i < nvertices; i++) {
             for (int j = 0; j < dim; j++) {
-                unique_coords.push_back(coords_flat[unique_idx[i]*dim+j]);
+                unique_coords[i*dim+j] = (coords_flat[unique_idx[i]*dim+j]);
             }
         }
 
@@ -154,16 +180,16 @@
             // std::cout << "neighbor_hashes:" << std::endl;
             // PrintVector(neighbor_hashes);
                 get_valid_idx(unique_hashes,neighbor_hashes,valid_coord,neighbor_idx);
-                std::vector<double> ones_valid_coord(valid_coord.size(),1.0);
-                // std::cout <<i<<j<< "nvertices,valid_coord.size,neighbor_idx.size:"<< nvertices<<valid_coord.size()<<neighbor_idx.size() << std::endl;
-                csr_matrix(blur_temp, ones_valid_coord, valid_coord, neighbor_idx);
+                // std::vector<double> ones_valid_coord(valid_coord.size(),1.0);
+                std::cout <<i<<j<< "nvertices,valid_coord.size,neighbor_idx.size:"<< nvertices<<" "<<valid_coord.size()<<" "<<neighbor_idx.size() << std::endl;
+                csr_matrix(blur_temp, valid_coord, neighbor_idx);
             // std::cout << "ones_valid_coord:" << std::endl;
             // PrintVector(ones_valid_coord);
             // std::cout << "valid_coord:" << std::endl;
             // PrintVector(valid_coord);
             // std::cout << "neighbor_idx:" << std::endl;
             // PrintVector(neighbor_idx);
-            //     std::cout << "blur_temp:"<< blur_temp << std::endl;
+                // std::cout << "blur_temp:"<< blur_temp << std::endl;
                 blur = blur + blur_temp;
             }
             // std::cout << "blur:"<< blur << std::endl;

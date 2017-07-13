@@ -24,6 +24,13 @@
         }
     }
 
+    void csr_matrix(Eigen::SparseMatrix<double>& spmat, std::vector<int>& rows, std::vector<int>& cols)
+    {
+        for (int i = 0; i < rows.size(); i++) {
+            spmat.insert(rows[i],cols[i]) = 1;
+        }
+    }
+
 
     void test_csr_matrix()
     {

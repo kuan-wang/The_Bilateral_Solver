@@ -64,13 +64,14 @@
         std::cout << "unique_hashes size" <<unique_hashes.size()<< std::endl;
 
         std::cout << "for 2" << std::endl;
+        int count = 0;
         for (int i = 0; i < hashed_coords.size(); i++) {
             // int id = binarySearchRecursive(&unique_hashes[0],0,input.size(),hashed_coords[i]);
             std::unordered_set<double>::iterator got = unique_hashes.find (hashed_coords[i]);
             if(got != unique_hashes.end())
             {
                 int id = std::distance(unique_hashes.begin(), got);
-                idx.push_back(id);
+                idx[count++] = id;
                 if(unique_idx[id] < 0) unique_idx[id] = i;
             }
         }
@@ -97,20 +98,27 @@
         }
         unique_hashes.resize(input.size());
         unique_idx.resize(input.size(),-1);
+        idx.resize(hashed_coords.size());
         std::copy(input.begin(),input.end(),unique_hashes.begin());
         // std::cout << "input :" <<unique_hashes<< std::endl;
         std::cout << "input size" <<input.size()<< std::endl;
 
         std::cout << "for 2" << std::endl;
+        clock_t now;
+        now = clock();
+        printf( "start test for 2 : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        int count = 0;
         for (int i = 0; i < hashed_coords.size(); i++) {
             int id = binarySearchRecursive(&unique_hashes[0],0,input.size(),hashed_coords[i]);
             if(id >= 0)
             {
-                idx.push_back(id);
+                // idx.push_back(id);
+                idx[count++] = id;
                 if(unique_idx[id] < 0) unique_idx[id] = i;
             }
         }
-
+        now = clock();
+        printf( "end test for 2 : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
         std::cout << "for 2 end" << std::endl;
 
     }

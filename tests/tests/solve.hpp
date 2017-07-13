@@ -200,38 +200,38 @@
 
         npixels = reference.cols*reference.rows;
 
-        cv::Mat r(npixels, 5, CV_64F);
+        // cv::Mat r(npixels, 5, CV_64F);
         cv::Mat t(npixels, 1, CV_64F);
         cv::Mat c(npixels, 1, CV_64F);
         std::vector<double> re(reference.cols*reference.rows*5);
-        std::vector<double> ta(reference.cols*reference.rows);
-        std::vector<double> co(reference.cols*reference.rows);
+        // std::vector<double> ta(reference.cols*reference.rows);
+        // std::vector<double> co(reference.cols*reference.rows);
         int idx = 0;
     	std::cout << "start filling positions and values" << std::endl;
         now = clock();
         printf( "fill positions and values : now is %f seconds\n", (double)(now) / CLOCKS_PER_SEC);
         for (int y = 0; y < reference.cols; y++) {
             for (int x = 0; x < reference.rows; x++) {
-                // double *datar = r.ptr<double>(idx);
-                double *datat = t.ptr<double>(idx);
                 double *datac = c.ptr<double>(idx);
-                // datar[0] = ceilf(x/spatialSigma);
-                // datar[1] = ceilf(y/spatialSigma);
-                // datar[2] = ceilf(reference.at<cv::Vec3b>(x,y)[0]/lumaSigma);
-                // datar[3] = ceilf(reference.at<cv::Vec3b>(x,y)[1]/chromaSigma);
-                // datar[4] = ceilf(reference.at<cv::Vec3b>(x,y)[2]/chromaSigma);
-                datat[0] = target.at<cv::Vec3b>(x,y)[0];
                 datac[0] = confidence.at<cv::Vec3b>(x,y)[0];
+                idx++;
+            }
+        }
+        idx = 0;
+        for (int y = 0; y < reference.cols; y++) {
+            for (int x = 0; x < reference.rows; x++) {
+                double *datat = t.ptr<double>(idx);
+                datat[0] = target.at<cv::Vec3b>(x,y)[0];
                 idx++;
             }
         }
 
         std::cout << "cv2eigen" << std::endl;
-        Eigen::MatrixXd ref;
+        // Eigen::MatrixXd ref;
         Eigen::MatrixXd tar;
         Eigen::MatrixXd con;
 
-        cv::cv2eigen(r,ref);
+        // cv::cv2eigen(r,ref);
         cv::cv2eigen(t,tar);
         cv::cv2eigen(c,con);
         std::cout << "finished cv2eigen" << std::endl;

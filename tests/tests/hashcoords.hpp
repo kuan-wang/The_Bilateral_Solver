@@ -23,6 +23,7 @@
     {
         double max_val = 255.0;
         hashed_coords.clear();
+        // hashed_coords.resize(coords_flat.size()/dim);
         for (int i = 0; i < coords_flat.size()/dim; i++) {
             double hash = 0;
             for (int j = 0; j < dim; j++) {
@@ -30,7 +31,10 @@
                 // std::cout << "hash:"<< hash << std::endl;
             }
             hashed_coords.push_back(hash);
+            // hashed_coords[i] = hash;
         }
+        std::cout << "hashed_coords == nvertices" <<hashed_coords.size()<<nvertices << std::endl;
+        std::cout << "coords_flat.size()/dim"<<coords_flat.size()/dim << std::endl;
     }
 
 

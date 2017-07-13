@@ -43,6 +43,8 @@
 	#include <Eigen/IterativeLinearSolvers>
 	#include <Eigen/Sparse>
 
+	// #include "omp.h"
+	#include <omp.h>
 
 
 	using namespace std;
