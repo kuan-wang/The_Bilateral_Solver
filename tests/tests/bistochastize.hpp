@@ -18,30 +18,26 @@
 #include "factorization.hpp"
 
 
-    void bistochastize(int maxiter = 1)
+    void bistochastize(int maxiter = 2)
     {
-        std::vector<double> ones_npixels(npixels,1.0);
-        std::vector<double> n(nvertices,1.0);
-        std::vector<double> m(nvertices);
+        Eigen::VectorXd ones_npixels = Eigen::VectorXd::Ones(npixels);
+        Eigen::VectorXd n = Eigen::VectorXd::Ones(nvertices);
+        Eigen::VectorXd m(nvertices);
+        Eigen::VectorXd bluredn(nvertices);
         Splat(ones_npixels,m);
 
-        std::cout << "m:" << std::endl;
         for (int i = 0; i < maxiter; i++) {
-            std::vector<double> bluredn;
             Blur(n,bluredn);
-            for (int j = 0; j < n.size(); j++) {
-                n[j] = sqrtf(n[j]*m[j]/bluredn[j]);
-            }
+            n = ((n.array()*m.array()).array()/bluredn.array()).array().sqrt();
         }
 
-        std::vector<double> bluredn;
         Blur(n,bluredn);
-        for (int i = 0; i < n.size(); i++) {
-            m[i] = n[i]*bluredn[i];
-        }
+        m = n.array() * bluredn.array();
 
-        diags(m,Dm);
-        diags(n,Dn);
+        // diags(m,Dm);
+        // diags(n,Dn);
+        Dm = m.asDiagonal();
+        Dn = n.asDiagonal();
 
     }
 

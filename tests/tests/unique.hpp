@@ -13,6 +13,40 @@
 #include "binarySearch.hpp"
 
 
+    void unique(Eigen::MatrixXd& coords_flat, Eigen::MatrixXd& unique_coords,
+                Eigen::VectorXd& hashed_coords, std::vector<double>& unique_hashes)
+    {
+        unique_hashes.clear();
+        std::set<double> input;
+        std::cout << "unique hashed_coords" << std::endl;
+        for (int i = 0; i < hashed_coords.size(); i++) {
+            input.insert(hashed_coords(i));
+        }
+
+        std::cout << "coords_flat.cols():" << coords_flat.cols() << std::endl;
+        unique_coords.resize(input.size(),coords_flat.cols());
+        nvertices = input.size();
+        unique_hashes.resize(input.size());
+        S = Eigen::SparseMatrix<double>(nvertices,npixels);
+
+        std::copy(input.begin(),input.end(),unique_hashes.begin());
+
+        std::cout << "construct S and unique_coords" << std::endl;
+        int count = 0;
+
+        for (int i = 0; i < hashed_coords.size(); i++) {
+            int id = binarySearchRecursive(&unique_hashes[0],0,unique_hashes.size()-1,hashed_coords(i));  //size()-1?
+            // std::set<double>::iterator got = unique_hashes.find (hashed_coords(i));
+            // if(got != unique_hashes.end())
+            if(id >= 0)
+            {
+                S.insert(id, i) = 1.0;
+                unique_coords.row(id) = coords_flat.row(i);
+                // std::cout << "(id,i) : (" << id <<","<< i <<")"<< std::endl;
+            }
+        }
+        std::cout << "construct S and unique_coords end" << std::endl;
+    }
 
 
     void unique(std::vector<double>& hashed_coords, std::unordered_set<double>& unique_hashes,
@@ -80,6 +114,44 @@
         std::cout << "for 2 end" << std::endl;
 
     }
+
+
+    // void unique(std::vector<double>& hashed_coords, std::vector<double>& unique_hashes,
+    //             std::vector<double>& coords)
+    // {
+    //
+    //     unique_idx.clear();
+    //     idx.clear();
+    //     unique_hashes.clear();
+    //
+    //
+    //     std::set<double> input;
+    //     std::cout << "for 1" << std::endl;
+    //     std::cout << "hashed_coords size" <<hashed_coords.size()<< std::endl;
+    //     for (int i = 0; i < hashed_coords.size(); i++) {
+    //         // std::cout << "hashed_coords:"<<hashed_coords[i] << std::endl;
+    //         input.insert(hashed_coords[i]);
+    //     }
+    //     unique_hashes.resize(input.size());
+    //     unique_idx.resize(input.size(),-1);
+    //     std::copy(input.begin(),input.end(),unique_hashes.begin());
+    //     // std::cout << "input :" <<unique_hashes<< std::endl;
+    //     std::cout << "input size" <<input.size()<< std::endl;
+    //
+    //     std::cout << "for 2" << std::endl;
+    //     for (int i = 0; i < hashed_coords.size(); i++) {
+    //         int id = binarySearchRecursive(&unique_hashes[0],0,input.size(),hashed_coords[i]);
+    //         if(id >= 0)
+    //         {
+    //             idx.push_back(id);
+    //             if(unique_idx[id] < 0) unique_idx[id] = i;
+    //         }
+    //     }
+    //
+    //     std::cout << "for 2 end" << std::endl;
+    //
+    // }
+
 
     void test_unique() {
 

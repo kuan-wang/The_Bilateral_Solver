@@ -4,7 +4,7 @@
 
 
 
-    int binarySearchRecursive(double a[],int low,int high,double key){
+    int binarySearchRecursive(const double a[],int low,int high,double key){
         if(low>high)
             return -(low+1);
 

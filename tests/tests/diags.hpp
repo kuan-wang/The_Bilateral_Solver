@@ -6,6 +6,14 @@
 
 #include "testslib.hpp"
 
+    void diags(Eigen::VectorXd& v,Eigen::SparseMatrix<double>& m)
+    {
+        m = Eigen::SparseMatrix<double>(v.size(),v.size());
+        for (int i = 0; i < v.size(); i++) {
+            m.insert(i,i) = v(i);
+        }
+    }
+
     void diags(std::vector<double>& v,Eigen::SparseMatrix<double>& m)
     {
         m = Eigen::SparseMatrix<double>(v.size(),v.size());

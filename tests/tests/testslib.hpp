@@ -48,7 +48,7 @@
 	using namespace std;
 
 
-static int npixels = 50;
+static int npixels = 200;
 static int nvertices = 10;
 static int dim = 5;
 static int pd = 5;
@@ -181,7 +181,7 @@ static bs_params bs_param;
 		vector<T> vector(size, 0);
 
 		for (int i = 0; i < size; i++) {
-			vector[i] = rand() % (2);
+			vector[i] = rand() % (size);
 			// vector[i] = rand() % 101;
 		}
 

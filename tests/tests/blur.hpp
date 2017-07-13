@@ -12,6 +12,21 @@
 #include "factorization.hpp"
 
 
+    void Blur(Eigen::VectorXd& x, Eigen::VectorXd& result)
+    {
+        if(x.size() != nvertices)
+        {
+            std::cout << "x.size() != nvertices" << std::endl;
+            exit(-1);
+        }
+
+        result = (2*dim)*x;
+        for (int i = 0; i < dim; i++)
+        {
+            result = result + blurs[i] * x;
+        }
+    }
+
 
 
     void Blur(std::vector<double>& x, std::vector<double>& result)

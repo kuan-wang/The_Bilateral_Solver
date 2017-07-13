@@ -50,6 +50,14 @@
         }
     }
 
+    void Slice(Eigen::VectorXd& y,
+               Eigen::MatrixXd& result)
+    {
+        result = S.transpose()*y;
+    }
+
+
+
 
 
     void test_slice()

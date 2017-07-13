@@ -7,6 +7,17 @@
 #include "testslib.hpp"
 
 
+    void hash_coords(Eigen::MatrixXd& coords_flat, Eigen::VectorXd& hashed_coords)
+    {
+        double max_val = 255.0;
+        Eigen::VectorXd hash_vec(5);
+        hash_vec[0] = 1;
+        for (int i = 1; i < 5; i++) {
+            hash_vec[i] = hash_vec[i-1]*max_val;
+        }
+        hashed_coords = coords_flat * hash_vec;
+    }
+
 
     void hash_coords(std::vector<double>& coords_flat, std::vector<double>& hashed_coords)
     {
