@@ -55,6 +55,19 @@ InputImage::InputImage(Mat3f mat_image)
 	mat_draw = mat_draw_bp.clone();
 }
 
+InputImage::InputImage(Mat3f mat_image, Mat3f mat_image_reference)
+{
+	mat_input = mat_image.clone();
+	cv::resize(mat_image_reference, mat_input_reference, cv::Size( mat_input.cols, mat_input.rows), (0, 0), (0, 0), cv::INTER_LINEAR);
+	cvtColor(mat_input, mat_gray, COLOR_BGR2GRAY);
+	mat_draw_bp = copy_GlaychForRGBch(mat_gray, mat_input);
+	cvtColor(mat_draw_bp, mat_yuv, COLOR_BGR2YCrCb);
+	// cvtColor(mat_image, mat_yuv, COLOR_BGR2YCrCb);
+	std::cout << mat_draw_bp.cols<< "x" << mat_draw_bp.rows <<"x"<< mat_draw_bp.channels()<< std::endl;
+	std::cout << mat_image.cols<< "x" << mat_image.rows << "x"<< mat_image.channels()<<std::endl;
+	mat_draw = mat_draw_bp.clone();
+}
+
 
 Mat3f InputImage::copy_GlaychForRGBch(Mat1f gray, Mat3f color)
 {
@@ -114,6 +127,44 @@ void InputImage::draw_Trajectory(Mat3f* img)
 			red = *color_pix;
 			color_pix++;
 			circle(*img, Point2d(x, y), 0, Scalar(blue, green, red), -1);
+		}
+	}
+}
+
+void InputImage::draw_Trajectory_Byreference(Mat3f* img)
+{
+	int i, j;
+	float red, green, blue;
+	int y, x;
+	int r = MARK_RADIUS;
+	int r2 = r * r;
+	float* color_pix;
+
+	y = mouse_y - r;
+	for(i=-r; i<r+1 ; i++, y++)
+	{
+		x = mouse_x - r;
+		color_pix = mat_input_reference.ptr<float>(y, x);
+		for(j=-r; j<r+1; j++, x++)
+		{
+			if(i*i + j*j > r2)
+			{
+				color_pix += mat_input_reference.channels();
+				continue;
+			}
+
+			if(y<0 || y>=mat_input_reference.rows || x<0 || x>=mat_input_reference.cols)
+			{
+				break;
+			}
+
+			blue = *color_pix;
+			color_pix++;
+			green = *color_pix;
+			color_pix++;
+			red = *color_pix;
+			color_pix++;
+			circle(*img, Point2d(x, y), 0.1, Scalar(blue, green, red), -1);
 		}
 	}
 }
@@ -179,7 +230,8 @@ void InputImage::draw_Image(void)
 		mouse_left = glb_mouse_left;
 
 		if (mouse_click) {
-			draw_Trajectory(&mat_draw);
+			// draw_Trajectory(&mat_draw);
+			draw_Trajectory_Byreference(&mat_draw);
 			imshow("draw", mat_draw);
 		}
 		if (waitKey(2) == 27)

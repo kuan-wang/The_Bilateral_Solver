@@ -1,10 +1,11 @@
 
-#include<iostream>
 #include<opencv2/core/core.hpp>
 #include<opencv2/highgui.hpp>
 #include<opencv2/opencv.hpp>
 
 
+#include<iostream>
+#include<string>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -557,6 +558,11 @@ int main(int argc, char const *argv[]) {
     // cv::imshow("im",im);
     // cv::waitKey(1000);
 
+    double spatialSigma = double(atof(argv[3]));
+    double colorSigma = double(atof(argv[4]));
+    std::cout << "spatialSigma:" <<spatialSigma<< std::endl;
+    std::cout << "colorSigma:" <<colorSigma<< std::endl;
+
     clock_t start, finish, now;
     double duration;
 
@@ -586,7 +592,7 @@ int main(int argc, char const *argv[]) {
     now = clock();
     printf( "now is %f seconds\n", (double)(now) / CLOCKS_PER_SEC);
 	// bilateral(im,8.0,4.0);
-	bilateral(im,target,16.0,8.0);
+	bilateral(im,target,spatialSigma,colorSigma);
 	// bilateral(im,64.0,32.0);
     finish = clock();
     duration = (double)(finish - start) / CLOCKS_PER_SEC;

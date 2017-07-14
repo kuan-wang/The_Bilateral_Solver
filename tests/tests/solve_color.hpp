@@ -1,6 +1,6 @@
 
-#ifndef _FILT_HPP_
-#define _FILT_HPP_
+#ifndef _COLOR_HPP_
+#define _COLOR_HPP_
 
 #include <iostream>
 
@@ -164,7 +164,7 @@
     //     printf( "solved : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
     //
     //     Slice(y,out);
-    //     now = clock();
+    //     now = clock()_;
     //     printf( "Sliced : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
     //
     //
@@ -181,9 +181,9 @@
         now = clock();
         printf( "start : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
 
-        cv::Mat reference = cv::imread("reference.png");
-        cv::Mat im1 = cv::imread("reference.png");
-        cv::Mat target = cv::imread("target.png");
+        cv::Mat reference = cv::imread("rose1.webp");
+        cv::Mat im1 = cv::imread("rose1.webp");
+        cv::Mat target = cv::imread("draw.png");
         cv::Mat confidence = cv::imread("confidence.png");
 
         // cv::Mat reference = cv::imread("rgb.png");
@@ -199,15 +199,17 @@
         std::cout << "reference:" << reference.cols<<"x"<< reference.rows<< std::endl;
 
 
-        double spatialSigma = 250.0;
-        double lumaSigma = 8.0;
+        double spatialSigma = 32.0;
+        double lumaSigma = 16.0;
         double chromaSigma = 4.0;
 
         npixels = reference.cols*reference.rows;
 
         cv::Mat r(npixels, 5, CV_64F);
-        cv::Mat t(npixels, 1, CV_64F);
-        cv::Mat c(npixels, 1, CV_64F);
+        cv::Mat tu(npixels, 1, CV_64F);
+        cv::Mat tv(npixels, 1, CV_64F);
+        cv::Mat cu(npixels, 1, CV_64F);
+        cv::Mat cv(npixels, 1, CV_64F);
         // std::vector<double> re(reference.cols*reference.rows*5);
         // std::vector<double> ta(reference.cols*reference.rows);
         // std::vector<double> co(reference.cols*reference.rows);
@@ -221,39 +223,65 @@
                 datar[0] = ceilf(x/spatialSigma);
                 datar[1] = ceilf(y/spatialSigma);
                 datar[2] = ceilf(reference.at<cv::Vec3b>(x,y)[0]/lumaSigma);
-                datar[3] = ceilf(reference.at<cv::Vec3b>(x,y)[1]/chromaSigma);
-                datar[4] = ceilf(reference.at<cv::Vec3b>(x,y)[2]/chromaSigma);
-                // datar[3] = 1.0;
-                // datar[4] = 1.0;
+                // datar[3] = ceilf(reference.at<cv::Vec3b>(x,y)[1]/chromaSigma);
+                // datar[4] = ceilf(reference.at<cv::Vec3b>(x,y)[2]/chromaSigma);
+                datar[3] = 1.0;
+                datar[4] = 1.0;
                 idx++;
             }
         }
         idx = 0;
         for (int y = 0; y < reference.cols; y++) {
             for (int x = 0; x < reference.rows; x++) {
-                double *datac = c.ptr<double>(idx);
-                // datac[0] = 1.0;
-                datac[0] = confidence.at<cv::Vec3b>(x,y)[0];
+                double *datac = cu.ptr<double>(idx);
+                if(target.at<cv::Vec3b>(x,y)[1] == 128) datac[0] = 0;
+                else datac[0] = 255;
+                // std::cout << "datac" << std::endl;
+                // std::cout << datac[0] << std::endl;
+                // datac[0] = confidence.at<cv::Vec3b>(x,y)[0];
                 idx++;
             }
         }
         idx = 0;
         for (int y = 0; y < reference.cols; y++) {
             for (int x = 0; x < reference.rows; x++) {
-                double *datat = t.ptr<double>(idx);
-                datat[0] = target.at<cv::Vec3b>(x,y)[0];
+                double *datac = cv.ptr<double>(idx);
+                if(target.at<cv::Vec3b>(x,y)[2] == 128) datac[0] = 0;
+                else datac[0] = 255;
+                // datac[0] = target.at<cv::Vec3b>(x,y)[2];
+                // datac[0] = confidence.at<cv::Vec3b>(x,y)[0];
+                idx++;
+            }
+        }
+        idx = 0;
+        for (int y = 0; y < reference.cols; y++) {
+            for (int x = 0; x < reference.rows; x++) {
+                double *datat = tu.ptr<double>(idx);
+                datat[0] = target.at<cv::Vec3b>(x,y)[1];
+                idx++;
+            }
+        }
+        idx = 0;
+        for (int y = 0; y < reference.cols; y++) {
+            for (int x = 0; x < reference.rows; x++) {
+                double *datat = tv.ptr<double>(idx);
+                datat[0] = target.at<cv::Vec3b>(x,y)[2];
                 idx++;
             }
         }
 
         std::cout << "cv2eigen" << std::endl;
         Eigen::MatrixXd ref;
-        Eigen::MatrixXd tar;
-        Eigen::MatrixXd con;
+        Eigen::MatrixXd taru;
+        Eigen::MatrixXd tarv;
+        Eigen::MatrixXd conu;
+        Eigen::MatrixXd conv;
 
         cv::cv2eigen(r,ref);
-        cv::cv2eigen(t,tar);
-        cv::cv2eigen(c,con);
+        cv::cv2eigen(tu,taru);
+        cv::cv2eigen(tv,tarv);
+        cv::cv2eigen(cu,conu);
+        cv::cv2eigen(cv,conv);
         std::cout << "finished cv2eigen" << std::endl;
 
 
@@ -297,7 +325,8 @@
 
         now = clock();
         printf( "solve :now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
-        solve(tar,con,tar);
+        solve(taru,conu,taru);
+        solve(tarv,conv,tarv);
         now = clock();
         printf( "solved :now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
 
@@ -307,7 +336,8 @@
         for (int y = 0; y < reference.cols; y++) {
             for (int x = 0; x < reference.rows; x++) {
                 // double w = values[idx*4+3];
-                target.at<cv::Vec3b>(x,y)[0] = tar(idx);
+                target.at<cv::Vec3b>(x,y)[1] = taru(idx);
+                target.at<cv::Vec3b>(x,y)[2] = tarv(idx);
                 // target.at<cv::uchar>(x,y) = values[idx*4+1]/w;
                 // target.at<cv::uchar>(x,y) = values[idx*4+2]/w;
                 // target.at<cv::Vec3b>(x,y)[0] = values[idx*4+0]/w;
@@ -333,4 +363,4 @@
 
 
 
-#endif //_FILT_HPP_
+#endif //_COLOR_HPP_

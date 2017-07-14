@@ -6,6 +6,7 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 #include <iostream>
+#include <time.h>
 #include "BilateralGrid.hpp"
 
 using namespace cv;
@@ -323,7 +324,7 @@ void BilateralGrid::construct_BlurMatrix()
 				int Ydiff = abs(p_table->data[j] - p_table->data[k]);
 				// std::cout<<"p_table->count:"<<p_table->count<<" compdata:"<<p_table->data[j] << " "<< p_table->data[k]<<std::endl;
 				// if(Ydiff + Udiff + Vdiff < BLUR_RADIUS+1)
-				std::cout<<Ydiff<<std::endl;
+				// std::cout<<Ydiff<<std::endl;
 				if(Ydiff < BLUR_RADIUS+1)
 				{
 					// std::cout<<"center:"<<counter++<<std::endl;

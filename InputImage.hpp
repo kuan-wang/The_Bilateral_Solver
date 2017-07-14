@@ -25,14 +25,17 @@ class InputImage
 	public:
 		InputImage(Mat1f mat_image);
 		InputImage(Mat3f mat_image);
+		InputImage(Mat3f mat_image, Mat3f mat_image_reference);
 		Mat3f get_Image(int num);
-		void draw_Image(void);			
+		void draw_Image(void);
 		void show_Image(int num);
 
 	private:
 		Mat3f copy_GlaychForRGBch(Mat1f, Mat3f);
 		void draw_Trajectory(Mat3f *);
+		void draw_Trajectory_Byreference(Mat3f *);
 		Mat3f mat_input;
+		Mat3f mat_input_reference;
 		Mat3f mat_draw;
 		Mat3f mat_draw_bp;
 		Mat3f mat_draw_yuv;

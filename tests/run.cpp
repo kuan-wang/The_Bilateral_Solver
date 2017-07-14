@@ -11,7 +11,8 @@
 // #include "tests/slice.hpp"
 // #include "tests/blur.hpp"
 // #include "tests/filt.hpp"
-#include "tests/solve.hpp"
+#include "tests/solve_color.hpp"
+// #include "tests/solve.hpp"
 // #include "tests/bistochastize.hpp"
 
 

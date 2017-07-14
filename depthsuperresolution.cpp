@@ -2,6 +2,7 @@
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <iostream>
+#include <time.h>
 #include "InputImage.hpp"
 #include "BilateralGrid.hpp"
 
@@ -17,6 +18,10 @@ const String keys =
 
 int main(int argc, char **argv)
 {
+    clock_t now;
+    now = clock();
+    printf( "start depth_superres : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+
     String imgName_T;
     String imgName_R;
     String imgName_C;
@@ -49,6 +54,9 @@ int main(int argc, char **argv)
 
 	imshow("mat_R",mat_R);
 	BiGr.Depthsuperresolution(mat_R,mat_T,5,5,5);
+
+    now = clock();
+    printf( "end depthsuperresolution : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
 
 	// InputImage InImg(mat_in);
 	// mat_bg_in = InImg.get_Image(IMG_YUV);
