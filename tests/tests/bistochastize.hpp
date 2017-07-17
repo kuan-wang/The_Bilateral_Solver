@@ -18,7 +18,7 @@
 #include "factorization.hpp"
 
 
-    void bistochastize(int maxiter = 2)
+    void bistochastize(int maxiter = 10)
     {
         Eigen::VectorXd ones_npixels = Eigen::VectorXd::Ones(npixels);
         Eigen::VectorXd n = Eigen::VectorXd::Ones(nvertices);

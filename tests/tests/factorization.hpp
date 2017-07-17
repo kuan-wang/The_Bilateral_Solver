@@ -92,6 +92,11 @@
             blurs.push_back(blur);
         }
 
+        // std::cout << "S:" << std::endl;
+        // std::cout << S.cols()<<S.rows() << std::endl;
+        // std::cout << "unique_hashes:" << std::endl;
+        // PrintVector(unique_hashes);
+
 
     }
 
