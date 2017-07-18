@@ -11,7 +11,8 @@
 // #include "tests/slice.hpp"
 // #include "tests/blur.hpp"
 // #include "tests/filt.hpp"
-#include "tests/solve_color.hpp"
+// #include "tests/solve_color.hpp"
+#include "tests/solve_comp.hpp"
 // #include "tests/solve.hpp"
 // #include "tests/bistochastize.hpp"
 
@@ -19,6 +20,7 @@
 
 int main(int argc, char const *argv[]) {
 
+    args = argv;
     // test_unique();
     // test_hash_coords();
     // test_csr_matrix();

@@ -71,12 +71,17 @@
         // fill A and b
         Eigen::ConjugateGradient<Eigen::SparseMatrix<double>, Eigen::Lower|Eigen::Upper> cg;
         cg.compute(A);
-        for (size_t i = 0; i < bs_param.cg_maxiter; i++) {
-            y = cg.solve(b);
-            std::cout << "#iterations:     " << cg.iterations() << std::endl;
-            std::cout << "estimated error: " << cg.error()      << std::endl;
-            if(cg.error()  < bs_param.cg_tol) break;
-        }
+        cg.setMaxIterations(bs_param.cg_maxiter);
+        cg.setTolerance(bs_param.cg_tol);
+        y = cg.solve(b);
+        std::cout << "#iterations:     " << cg.iterations() << std::endl;
+        std::cout << "estimated error: " << cg.error()      << std::endl;
+        // for (size_t i = 0; i < bs_param.cg_maxiter; i++) {
+        //     y = cg.solve(b);
+        //     std::cout << "#iterations:     " << cg.iterations() << std::endl;
+        //     std::cout << "estimated error: " << cg.error()      << std::endl;
+        //     if(cg.error()  < bs_param.cg_tol) break;
+        // }
         now = clock();
         printf( "solved : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
 
@@ -106,10 +111,15 @@
         // cv::Mat target = cv::imread("target.png",-1);
         // cv::Mat confidence = cv::imread("confidence.png",-1);
 
-        cv::Mat reference = cv::imread("rgb.png",-1);
-        cv::Mat im1 = cv::imread("rgb.png",-1);
-        cv::Mat target = cv::imread("depth.png",-1);
-        cv::Mat confidence = cv::imread("depth.png",-1);
+        // cv::Mat reference = cv::imread("rgb.png",-1);
+        // cv::Mat im1 = cv::imread("rgb.png",-1);
+        // cv::Mat target = cv::imread("depth.png",-1);
+        // cv::Mat confidence = cv::imread("depth.png",-1);
+
+        cv::Mat reference = cv::imread(args[1],-1);
+        cv::Mat im1 = cv::imread(args[1],-1);
+        cv::Mat target = cv::imread(args[2],-1);
+        cv::Mat confidence = cv::imread(args[3],-1);
 
         // cv::Mat reference = cv::imread("testr.png",-1);
         // cv::Mat im1 = cv::imread("testr.png",-1);
@@ -135,9 +145,9 @@
         // std::cout << reference << std::endl;
 
 
-        double spatialSigma = 8.0;
-        double lumaSigma = 4.0;
-        double chromaSigma = 4.0;
+        double spatialSigma = double(atof(args[4]));
+        double lumaSigma = double(atof(args[5]));
+        double chromaSigma = double(atof(args[6]));
 
         npixels = reference.cols*reference.rows;
 

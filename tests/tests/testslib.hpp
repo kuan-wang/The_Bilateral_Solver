@@ -84,13 +84,14 @@ static Eigen::SparseMatrix<double> Dm;
             lam = 128.0;
             A_diag_min = 1e-5;
             cg_tol = 1e-5;
-            cg_maxiter = 25;
+            cg_maxiter = 50;
         }
     };
 
 static grid_params grid_param;
 static bs_params bs_param;
 
+const char** args;
 
 
 	class FailureException : public exception
