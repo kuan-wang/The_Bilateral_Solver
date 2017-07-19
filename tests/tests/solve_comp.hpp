@@ -34,10 +34,10 @@
 
         clock_t now;
 
-        Eigen::SparseMatrix<double> bluredDn(nvertices,nvertices);
-        Blur(Dn,bluredDn);
+        // Eigen::SparseMatrix<double> bluredDn(nvertices,nvertices);
+        // Blur(Dn,bluredDn);
 	    // std::cout << "start Blur(Dn,bluredDn)" << std::endl;
-        Eigen::SparseMatrix<double> A_smooth = Dm - Dn * bluredDn;
+        // Eigen::SparseMatrix<double> A_smooth = Dm - Dn * (blurs_test*Dn);
         now = clock();
         printf( "A_smooth : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
 
@@ -56,7 +56,8 @@
 	    // std::cout << "start Splat(w,w_splat)" << std::endl;
         Splat(w,w_splat);
         diags(w_splat,A_data);
-        A = bs_param.lam * A_smooth + A_data ;
+        A = bs_param.lam * (Dm - Dn * (blurs_test*Dn)) + A_data ;
+        // A = bs_param.lam * A_smooth + A_data ;
         now = clock();
         printf( "A : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
 
@@ -151,7 +152,7 @@
 
         npixels = reference.cols*reference.rows;
 
-        cv::Mat r(npixels, 5, CV_64F);
+        cv::Mat r(npixels, 5, CV_8U);
         cv::Mat t(npixels, 1, CV_64F);
         cv::Mat c(npixels, 1, CV_64F);
         // std::vector<double> re(reference.cols*reference.rows*5);
@@ -163,7 +164,7 @@
         printf( "fill positions and values : now is %f seconds\n", (double)(now) / CLOCKS_PER_SEC);
         for (int y = 0; y < reference.cols; y++) {
             for (int x = 0; x < reference.rows; x++) {
-                double *datar = r.ptr<double>(idx);
+                uchar *datar = r.ptr<uchar>(idx);
                 datar[0] = int(x/spatialSigma);
                 datar[1] = int(y/spatialSigma);
                 datar[2] = int(reference.at<cv::Vec3b>(x,y)[2]/lumaSigma);
@@ -201,7 +202,7 @@
         }
 
         std::cout << "cv2eigen" << std::endl;
-        Eigen::MatrixXd ref;
+        Eigen::Matrix<uchar, Eigen::Dynamic, Eigen::Dynamic> ref;
         Eigen::MatrixXd tar;
         Eigen::MatrixXd con;
 

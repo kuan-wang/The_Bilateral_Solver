@@ -24,11 +24,12 @@
 
 
 
-    void compute_factorization(Eigen::MatrixXd& coords_flat)
+    void compute_factorization(Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic>& coords_flat)
     {
-        Eigen::VectorXd hashed_coords;
-        Eigen::MatrixXd unique_coords;
-        std::vector<double> unique_hashes;
+        Eigen::Matrix<long long, Eigen::Dynamic, 1> hashed_coords;
+        Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic> unique_coords;
+        std::vector<long long> unique_hashes;
+        // std::unordered_map<double,int> unique_hashes;
 
         clock_t now;
         now = clock();
@@ -57,20 +58,26 @@
 
         now = clock();
         printf( "start construct blur : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        blurs_test = Eigen::SparseMatrix<double>(nvertices,nvertices);
+        Eigen::VectorXd bl = Eigen::VectorXd::Ones(nvertices);
+        Eigen::Matrix<unsigned char, Eigen::Dynamic, 1> onesx = Eigen::Matrix<unsigned char, Eigen::Dynamic, 1>::Ones(nvertices);
+        blurs_test = bl.asDiagonal()*2*dim;
         for (int i = 0; i < dim; i++) {
             Eigen::SparseMatrix<double> blur(nvertices,nvertices);
             for (int j = -1; j <= 1; j++) {
                 if(j == 0) continue;
                 Eigen::SparseMatrix<double> blur_temp(nvertices,nvertices);
-                Eigen::MatrixXd neighbor_coords = unique_coords;
-                Eigen::VectorXd neighbor_hashes;
+                Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic> neighbor_coords = unique_coords;
+                Eigen::Matrix<long long, Eigen::Dynamic, 1> neighbor_hashes;
 
                 // std::vector<int> valid_coord;
                 // std::vector<int> neighbor_idx;
                 // std::vector<int> valid_idx;
-                for (int k = 0; k < nvertices; k++) {
-                    neighbor_coords(k,i) += j;
-                }
+                // for (int k = 0; k < nvertices; k++) {
+                //     neighbor_coords(k,i) += j;
+                // }
+                neighbor_coords.col(i) = neighbor_coords.col(i) + j*onesx;
+
                 hash_coords(neighbor_coords,neighbor_hashes);
             // std::cout << "neighbor_coords:" << std::endl;
             // std::cout << neighbor_coords << std::endl;
@@ -84,13 +91,102 @@
             // std::cout << "neighbor_idx:" << std::endl;
             // PrintVector(neighbor_idx);
             //     std::cout << "blur_temp:"<< blur_temp << std::endl;
-                blur = blur + blur_temp;
+                // blur = blur + blur_temp;
+                blurs_test = blurs_test + blur_temp;
                 // std::cout << blur << std::endl;
             }
             // std::cout << "blur:"<< blur << std::endl;
             std::cout << "blur"<< i << std::endl;
-            blurs.push_back(blur);
+            // blurs.push_back(blur);
         }
+        now = clock();
+        printf( "finished construct blur : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+
+        // std::cout << "S:" << std::endl;
+        // std::cout << S.cols()<<S.rows() << std::endl;
+        // std::cout << "unique_hashes:" << std::endl;
+        // PrintVector(unique_hashes);
+
+
+    }
+
+
+    void compute_factorization(Eigen::MatrixXd& coords_flat)
+    {
+        Eigen::VectorXd hashed_coords;
+        Eigen::MatrixXd unique_coords;
+        std::vector<double> unique_hashes;
+        // std::unordered_map<double,int> unique_hashes;
+
+        clock_t now;
+        now = clock();
+        printf( "start hashcoords : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        hash_coords(coords_flat,hashed_coords);
+        // std::cout << "coords_flat:" << std::endl;
+        // std::cout << coords_flat << std::endl;
+        // std::cout << "hashed_coords:" << std::endl;
+        // std::cout << hashed_coords << std::endl;
+
+        now = clock();
+        printf( "start unique : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        unique(coords_flat, unique_coords, hashed_coords, unique_hashes);
+        std::cout << "finish unique()" << std::endl;
+
+        // std::cout << "unique_coords:" << std::endl;
+        // std::cout << unique_coords << std::endl;
+        // std::cout << "unique_hashes:" << std::endl;
+        // std::set<double>::iterator iter=unique_hashes.begin();
+        // while(iter!=unique_hashes.end())
+        // {
+        //     std::cout<<*iter<<std::endl;
+        //     ++iter;
+        // }
+
+
+        now = clock();
+        printf( "start construct blur : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        blurs_test = Eigen::SparseMatrix<double>(nvertices,nvertices);
+        Eigen::VectorXd bl = Eigen::VectorXd::Ones(nvertices);
+        blurs_test = bl.asDiagonal()*2*dim;
+        for (int i = 0; i < dim; i++) {
+            Eigen::SparseMatrix<double> blur(nvertices,nvertices);
+            for (int j = -1; j <= 1; j++) {
+                if(j == 0) continue;
+                Eigen::SparseMatrix<double> blur_temp(nvertices,nvertices);
+                Eigen::MatrixXd neighbor_coords = unique_coords;
+                Eigen::VectorXd neighbor_hashes;
+
+                // std::vector<int> valid_coord;
+                // std::vector<int> neighbor_idx;
+                // std::vector<int> valid_idx;
+                // for (int k = 0; k < nvertices; k++) {
+                //     neighbor_coords(k,i) += j;
+                // }
+                neighbor_coords.col(i) = neighbor_coords.col(i) + j*bl;
+
+                hash_coords(neighbor_coords,neighbor_hashes);
+            // std::cout << "neighbor_coords:" << std::endl;
+            // std::cout << neighbor_coords << std::endl;
+                get_valid_idx(unique_hashes, neighbor_hashes, blur_temp);
+                // get_valid_idx(unique_hashes,neighbor_hashes,valid_coord,neighbor_idx);
+                // std::cout <<i<<j<< "nvertices,valid_coord.size,neighbor_idx.size:"<< nvertices<<valid_coord.size()<<neighbor_idx.size() << std::endl;
+            // std::cout << "ones_valid_coord:" << std::endl;
+            // PrintVector(ones_valid_coord);
+            // std::cout << "valid_coord:" << std::endl;
+            // PrintVector(valid_coord);
+            // std::cout << "neighbor_idx:" << std::endl;
+            // PrintVector(neighbor_idx);
+            //     std::cout << "blur_temp:"<< blur_temp << std::endl;
+                // blur = blur + blur_temp;
+                blurs_test = blurs_test + blur_temp;
+                // std::cout << blur << std::endl;
+            }
+            // std::cout << "blur:"<< blur << std::endl;
+            std::cout << "blur"<< i << std::endl;
+            // blurs.push_back(blur);
+        }
+        now = clock();
+        printf( "finished construct blur : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
 
         // std::cout << "S:" << std::endl;
         // std::cout << S.cols()<<S.rows() << std::endl;

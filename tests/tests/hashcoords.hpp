@@ -4,8 +4,37 @@
 #ifndef _HASHCOORDS_HPP_
 #define _HASHCOORDS_HPP_
 
+// #include<opencv2/core/core.hpp>
+// #include<opencv2/core/eigen.hpp>
+// #include<opencv2/highgui.hpp>
+// #include<opencv2/opencv.hpp>
+
 #include "testslib.hpp"
 
+
+    void hash_coords(Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic>& coords_flat,
+                     Eigen::Matrix<long long, Eigen::Dynamic, 1>& hashed_coords)
+    {
+        long long max_val = 255;
+        Eigen::Matrix<long long, 5, 1> hash_vec;
+        hash_vec(0) = 1;
+        for (int i = 1; i < 5; i++) {
+            hash_vec[i] = hash_vec[i-1]*max_val;
+        }
+        hashed_coords = coords_flat.cast<long long>() * hash_vec;
+    }
+
+    void hash_coords(Eigen::Matrix<long long, Eigen::Dynamic, Eigen::Dynamic>& coords_flat,
+                     Eigen::Matrix<long long, Eigen::Dynamic, 1>& hashed_coords)
+    {
+        long long max_val = 255;
+        Eigen::Matrix<long long, 5, 1> hash_vec;
+        hash_vec(0) = 1;
+        for (int i = 1; i < 5; i++) {
+            hash_vec[i] = hash_vec[i-1]*max_val;
+        }
+        hashed_coords = coords_flat * hash_vec;
+    }
 
     void hash_coords(Eigen::MatrixXd& coords_flat, Eigen::VectorXd& hashed_coords)
     {

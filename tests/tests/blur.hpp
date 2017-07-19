@@ -20,11 +20,14 @@
             exit(-1);
         }
 
-        result = (2*dim)*x;
-        for (int i = 0; i < dim; i++)
-        {
-            result = result + blurs[i] * x;
-        }
+        // result = (2*dim)*x;
+        // for (int i = 0; i < dim; i++)
+        // {
+        //     result = result + blurs[i] * x;
+        // }
+
+        result = blurs_test * x;
+
     }
 
 
@@ -65,10 +68,11 @@
             exit(-1);
         }
 
-        result = x * (2.0 * dim);
-        for (int i = 0; i < dim; i++) {
-            result = result + blurs[i] * x;
-        }
+        // result = x * (2.0 * dim);
+        // for (int i = 0; i < dim; i++) {
+        //     result = result + blurs[i] * x;
+        // }
+        result = blurs_test * x;
 
     }
 

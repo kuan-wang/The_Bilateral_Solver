@@ -25,6 +25,11 @@
 
 	#define	__TESTSLIB_H__
 
+	// #include<opencv2/core/core.hpp>
+	// #include<opencv2/core/eigen.hpp>
+	// #include<opencv2/highgui.hpp>
+	// #include<opencv2/opencv.hpp>
+
 
 	#include <time.h>
 	#include <string>
@@ -34,6 +39,7 @@
 	#include <iostream>
 	#include <typeinfo>
 	#include <exception>
+    #include <unordered_map>
     #include <unordered_set>
 
 
@@ -56,6 +62,7 @@ static int dim = 5;
 static int pd = 5;
 static int vd = 4;
 static std::vector<Eigen::SparseMatrix<double> > blurs;
+static Eigen::SparseMatrix<double> blurs_test;
 static Eigen::SparseMatrix<double> S;
 static Eigen::SparseMatrix<double> Dn;
 static Eigen::SparseMatrix<double> Dm;
@@ -84,7 +91,7 @@ static Eigen::SparseMatrix<double> Dm;
             lam = 128.0;
             A_diag_min = 1e-5;
             cg_tol = 1e-5;
-            cg_maxiter = 50;
+            cg_maxiter = 25;
         }
     };
 

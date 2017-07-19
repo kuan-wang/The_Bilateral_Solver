@@ -13,6 +13,53 @@
 #include "testslib.hpp"
 #include "binarySearch.hpp"
 
+
+    void get_valid_idx(std::unordered_map<long long, int>& valid, Eigen::Matrix<long long, Eigen::Dynamic, 1>& candidates,
+                        Eigen::SparseMatrix<double>& blur_temp)
+    {
+
+        for (int i = 0; i < candidates.size(); i++)
+        {
+            if(valid.find(candidates(i)) != valid.end())
+            {
+                blur_temp.insert(valid[candidates(i)], i) = 1.0;
+            }
+        }
+    }
+
+    void get_valid_idx(std::unordered_map<double, int>& valid, Eigen::VectorXd& candidates,
+                        Eigen::SparseMatrix<double>& blur_temp)
+    {
+
+        for (int i = 0; i < candidates.size(); i++)
+        {
+            if(valid.find(candidates(i)) != valid.end())
+            {
+                blur_temp.insert(valid[candidates(i)], i) = 1.0;
+            }
+        }
+    }
+
+
+    void get_valid_idx(std::vector<long long>& valid, Eigen::Matrix<long long, Eigen::Dynamic, 1>& candidates,
+                        Eigen::SparseMatrix<double>& blur_temp)
+    {
+
+        for (int i = 0; i < candidates.size(); i++)
+        {
+
+            int id = binarySearchRecursive(&valid[0],0,valid.size()-1,candidates(i));   //size()-1?
+            if(id >= 0)
+            {
+                // std::cout << "(i,id) : (" << i <<","<< id <<")"<< std::endl;
+                blur_temp.insert(id, i) = 1;
+                // blur_temp.insert(i, id) = 1;
+                // std::cout << "(i,id) : (" << i <<","<< id <<")"<< std::endl;
+            }
+        }
+    }
+
+
     void get_valid_idx(std::vector<double>& valid, Eigen::VectorXd& candidates,
                         Eigen::SparseMatrix<double>& blur_temp)
     {
