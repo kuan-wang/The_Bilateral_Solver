@@ -62,6 +62,8 @@ static int dim = 5;
 static int pd = 5;
 static int vd = 4;
 static std::vector<Eigen::SparseMatrix<double> > blurs;
+static std::vector<Eigen::Triplet<double> > triple_blur;
+static std::vector<Eigen::Triplet<double> > triple_S;
 static Eigen::SparseMatrix<double> blurs_test;
 static Eigen::SparseMatrix<double> S;
 static Eigen::SparseMatrix<double> Dn;

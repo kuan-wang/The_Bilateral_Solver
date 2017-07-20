@@ -51,12 +51,11 @@
             int id = binarySearchRecursive(&valid[0],0,valid.size()-1,candidates(i));   //size()-1?
             if(id >= 0)
             {
-                // std::cout << "(i,id) : (" << i <<","<< id <<")"<< std::endl;
-                blur_temp.insert(id, i) = 1;
-                // blur_temp.insert(i, id) = 1;
-                // std::cout << "(i,id) : (" << i <<","<< id <<")"<< std::endl;
+                triple_blur.push_back(Eigen::Triplet<double>(id, i, 1.0));
+                // blur_temp.insert(id, i) = 1;
             }
         }
+
     }
 
 

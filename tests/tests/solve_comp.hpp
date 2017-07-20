@@ -202,13 +202,15 @@
         }
 
         std::cout << "cv2eigen" << std::endl;
-        Eigen::Matrix<uchar, Eigen::Dynamic, Eigen::Dynamic> ref;
+        Eigen::Matrix<uchar, Eigen::Dynamic, Eigen::Dynamic> ref_temp;
+        Eigen::Matrix<long long, Eigen::Dynamic, Eigen::Dynamic> ref;
         Eigen::MatrixXd tar;
         Eigen::MatrixXd con;
 
-        cv::cv2eigen(r,ref);
+        cv::cv2eigen(r,ref_temp);
         cv::cv2eigen(t,tar);
         cv::cv2eigen(c,con);
+        ref = ref_temp.cast<long long>();
         std::cout << "finished cv2eigen" << std::endl;
 
 

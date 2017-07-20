@@ -174,9 +174,6 @@ public:
         for (int i = 0; i < n; i++) {
             lattice.splat(pos + i*pd, val + i*vd);
         }
-        lattice.compute_factorization();
-        std::cout << "S:" << std::endl;
-        std::cout << lattice.S.cols()<<"x"<<lattice.S.rows() << std::endl;
 
 	    std::cout << "end splat" << std::endl;
         now = clock();
@@ -187,7 +184,7 @@ public:
         now = clock();
         printf( "now is %f seconds\n", (double)(now) / CLOCKS_PER_SEC);
         // Blur
-        lattice.Construct_blur();
+        lattice.blur();
 	    std::cout << "end blur" << std::endl;
         now = clock();
         printf( "now is %f seconds\n", (double)(now) / CLOCKS_PER_SEC);
@@ -359,6 +356,107 @@ public:
             replay[nReplay].offset = val - &hashTable.getValues()[0];
             replay[nReplay].weight = barycentric[remainder];
             nReplay++;
+
+        }
+    }
+
+    void splat(const float *position, const float *value, int id) {
+
+        // First elevate position into the (d+1)-dimensional hyperplane
+        elevated[d] = -d*position[d-1]*scaleFactor[d-1];
+        for (int i = d-1; i > 0; i--)
+        elevated[i] = (elevated[i+1] -
+            i*position[i-1]*scaleFactor[i-1] +
+            (i+2)*position[i]*scaleFactor[i]);
+        elevated[0] = elevated[1] + 2*position[0]*scaleFactor[0];
+
+        // Prepare to find the closest lattice points
+        float scale = 1.0f/(d+1);
+
+        // Greedily search for the closest remainder-zero lattice point
+        int sum = 0;
+        for (int i = 0; i <= d; i++) {
+            float v = elevated[i]*scale;
+            float up = ceilf(v)*(d+1);
+            float down = floorf(v)*(d+1);
+            if (up - elevated[i] < elevated[i] - down) {
+                greedy[i] = (short)up;
+            } else {
+                greedy[i] = (short)down;
+            }
+            sum += greedy[i];
+        }
+        sum /= d+1;
+
+        // Rank differential to find the permutation between this
+        // simplex and the canonical one.
+        for (int i = 0; i < d+1; i++) rank[i] = 0;
+        for (int i = 0; i < d; i++) {
+            for (int j = i+1; j <= d; j++) {
+                if (elevated[i] - greedy[i] < elevated[j] - greedy[j]) {
+                    rank[i]++;
+                } else {
+                    rank[j]++;
+                }
+            }
+        }
+
+        if (sum > 0) {
+            // Sum too large - the point is off the hyperplane. We
+            // need to bring down the ones with the smallest
+            // differential
+            for (int i = 0; i <= d; i++) {
+                if (rank[i] >= d + 1 - sum) {
+                    greedy[i] -= d+1;
+                    rank[i] += sum - (d+1);
+                } else {
+                    rank[i] += sum;
+                }
+            }
+        } else if (sum < 0) {
+            // Sum too small - the point is off the hyperplane. We
+            // need to bring up the ones with largest differential
+            for (int i = 0; i <= d; i++) {
+                if (rank[i] < -sum) {
+                    greedy[i] += d+1;
+                    rank[i] += (d+1) + sum;
+                } else {
+                    rank[i] += sum;
+                }
+            }
+        }
+
+        // Compute barycentric coordinates
+        for (int i = 0; i < d+2; i++) { barycentric[i] = 0.0f; }
+        for (int i = 0; i <= d; i++) {
+            barycentric[d-rank[i]] += (elevated[i] - greedy[i]) * scale;
+            barycentric[d+1-rank[i]] -= (elevated[i] - greedy[i]) * scale;
+        }
+        barycentric[0] += 1.0f + barycentric[d+1];
+
+        // Splat the value into each vertex of the simplex, with
+        // barycentric weights
+        for (int remainder = 0; remainder <= d; remainder++) {
+            // Compute the location of the lattice point explicitly
+            // (all but the last coordinate - it’s redundant because
+            // they sum to zero)
+            for (int i = 0; i < d; i++) {
+                key[i] = greedy[i] + canonical[remainder*(d+1) + rank[i]];
+            }
+
+            // Retrieve pointer to the value at this vertex
+            float *val = hashTable.lookup(key, true);
+
+            // Accumulate values with barycentric weight
+            // for (int i = 0; i < vd; i++) {
+            //     val[i] += barycentric[remainder]*value[i];
+            // }
+
+            // Record this interaction to use later when slicing
+            int offset = val - &hashTable.getValues()[0];
+            double weight = barycentric[remainder];
+            triple_S.push_back(Eigen::Triplet<double>(offset/vd, id, weight));
+
         }
     }
 
@@ -425,17 +523,14 @@ public:
 
         // Prepare temporary arrays
         vector<short> neighbor1(d+1), neighbor2(d+1);
-        vector<float> zero(vd, 0.0f);
-        vector<float> newValue(vd*hashTable.size());
-        vector<float> &oldValue = hashTable.getValues();
-        // Eigen::MatrixXd bl = Eigen::MatrixXd::Identity(hashTable.size(),hashTable.size());
-        Eigen::VectorXd bl = Eigen::VectorXd::Ones(hashTable.size());
-        Eigen::SparseMatrix<double> blur(hashTable.size(),hashTable.size());
+        Eigen::VectorXd bl = Eigen::VectorXd::Ones(nvertices);
+        Eigen::SparseMatrix<double> blur(nvertices, nvertices);
         blur = bl.asDiagonal()*2;
 
         // For each of d+1 axes,
         for (int j = 0; j <= d; j++) {
-            Eigen::SparseMatrix<double> blur_temp(hashTable.size(),hashTable.size());
+            Eigen::SparseMatrix<double> blur_temp(nvertices, nvertices);
+            std::vector<Eigen::Triplet<double> > triple_blur;
             // For each vertex in the lattice,
             for (int i = 0; i < hashTable.size(); i++) {
                 // Blur point i in dimension j
@@ -450,29 +545,137 @@ public:
                 // Mix values of the three vertices
                 float *v1 = hashTable.lookup(neighbor1, false);
                 float *v2 = hashTable.lookup(neighbor2, false);
-                if (v1) blur_temp.insert(v1 - &hashTable.getValues()[0],i) = 1;
-                if (v2) blur_temp.insert(v2 - &hashTable.getValues()[0],i) = 1;
+                if (v1)
+                {
+                    triple_blur.push_back(Eigen::Triplet<double>((v1 - &hashTable.getValues()[0])/vd, i, 1.0));
+                    // blur_temp.insert((v1 - &hashTable.getValues()[0])/vd,i) = 1;
+                }
+                if (v2)
+                {
+                    triple_blur.push_back(Eigen::Triplet<double>((v2 - &hashTable.getValues()[0])/vd, i, 1.0));
+                    // blur_temp.insert((v2 - &hashTable.getValues()[0])/vd,i) = 1;
+                }
             }
-            blurs.push_back(blur);
+            // blurs.push_back(blur_temp+blur);
+            blur_temp.setFromTriplets(triple_blur.begin(),triple_blur.end());
+            blurs_test = blurs_test * (blur_temp+blur);
         }
+        // blurs_test.setFromTriplets(triple_blur.begin(),triple_blur.end());
     }
 
     void compute_factorization()
     {
-        S = Eigen::SparseMatrix<double>(hashTable.size()/(d+1),n);
-        std::cout << "hashTable.size() n:"<<hashTable.size()/(d+1)<<" "<<n << std::endl;
-        for (int i = 0; i < n; i++) {
-            for (int j = 0; j < d+1; j++) {
-                S.insert(replay[i*(d+1)+j].offset,i) = replay[i*(d+1)+j].weight;
-            }
-        }
+        nvertices = hashTable.size();
+        Eigen::VectorXd ones_nvertices = Eigen::VectorXd::Ones(nvertices);
+        blurs_test = ones_nvertices.asDiagonal();
+        S = Eigen::SparseMatrix<double>(hashTable.size(),n);
+        std::cout << "hashTable.size() n:"<<hashTable.size()<<" "<<n << std::endl;
+        // for (int i = 0; i < n; i++) {
+        //     for (int j = 0; j < d+1; j++) {
+        //         S.insert(replay[i*(d+1)+j].offset/vd,i) = replay[i*(d+1)+j].weight;
+        //     }
+        // }
+        S.setFromTriplets(triple_S.begin(), triple_S.end());
 
         // Construct_blur();
         std::cout << "blurs[0]:" << std::endl;
         // std::cout << blurs[0].cols()<<" "<<blurs[0].rows() << std::endl;
     }
 
-    void bistochastize();
+
+    void bistochastize(int maxiter = 10)
+    {
+        Eigen::VectorXd ones_n = Eigen::VectorXd::Ones(n);
+        Eigen::VectorXd n = Eigen::VectorXd::Ones(nvertices);
+        Eigen::VectorXd m(nvertices);
+        Eigen::VectorXd bluredn(nvertices);
+        // Splat(ones_n,m);
+
+        for (int i = 0; i < maxiter; i++) {
+            // Blur(n,bluredn);
+            n = ((n.array()*m.array()).array()/bluredn.array()).array().sqrt();
+        }
+
+        // Blur(n,bluredn);
+        m = n.array() * bluredn.array();
+
+        // diags(m,Dm);
+        // diags(n,Dn);
+        Dm = m.asDiagonal();
+        Dn = n.asDiagonal();
+
+    }
+
+
+    static void filt(const float *pos, int pd,
+                    const float *val, int vd,
+                    int n, float *out) {
+
+        clock_t now;
+
+        // Create lattice
+        PermutohedralLattice lattice(pd, vd, n);
+
+
+
+	    std::cout << "start splat" << std::endl;
+        now = clock();
+        printf( "now is %f seconds\n", (double)(now) / CLOCKS_PER_SEC);
+        // Splat
+        for (int i = 0; i < n; i++) {
+            lattice.splat(pos + i*pd, val + i*vd, i);
+        }
+	    std::cout << "end splat" << std::endl;
+        now = clock();
+        printf( "now is %f seconds\n", (double)(now) / CLOCKS_PER_SEC);
+        lattice.compute_factorization();
+        std::cout << "S:" << std::endl;
+        std::cout << lattice.S.cols()<<"x"<<lattice.S.rows() << std::endl;
+
+	    std::cout << "end compute_factorization" << std::endl;
+        now = clock();
+        printf( "now is %f seconds\n", (double)(now) / CLOCKS_PER_SEC);
+
+
+	    std::cout << "start blur" << std::endl;
+        now = clock();
+        printf( "now is %f seconds\n", (double)(now) / CLOCKS_PER_SEC);
+        // Blur
+        lattice.Construct_blur();
+	    std::cout << "end blur" << std::endl;
+        now = clock();
+        printf( "now is %f seconds\n", (double)(now) / CLOCKS_PER_SEC);
+//-----------------------------------------------------------------------------
+
+
+        Eigen::VectorXd tar(n);
+        Eigen::VectorXd onesx(n);
+        onesx = Eigen::VectorXd::Ones(n);
+        for (int i = 0; i < n; i++) {
+            tar(i) = val[i*vd+0];
+        }
+        tar = (lattice.S.transpose() * (lattice.blurs_test * (lattice.S * tar))).array() /
+              (lattice.S.transpose() * (lattice.blurs_test * (lattice.S * onesx))).array();
+
+        for (int i = 0; i < n; i++) {
+            out[i*vd+0] = tar(i);
+        }
+
+//-----------------------------------------------------------------------------
+        //
+	    // std::cout << "start slice" << std::endl;
+        // now = clock();
+        // printf( "now is %f seconds\n", (double)(now) / CLOCKS_PER_SEC);
+        // // Slice
+        // lattice.beginSlice();
+        // for (int i = 0; i < n; i++) {
+        //     lattice.slice(out + i*vd);
+        // }
+	    std::cout << "end slice" << std::endl;
+        now = clock();
+        printf( "now is %f seconds\n", (double)(now) / CLOCKS_PER_SEC);
+    }
+
 
 private:
     int d, vd, n;
@@ -490,8 +693,11 @@ private:
     HashTablePermutohedral hashTable;
 
 
+    int nvertices;
 
     std::vector<Eigen::SparseMatrix<double> > blurs;
+    Eigen::SparseMatrix<double> blurs_test;
+    std::vector<Eigen::Triplet<double> > triple_S;
     Eigen::SparseMatrix<double> S;
     Eigen::SparseMatrix<double> Dn;
     Eigen::SparseMatrix<double> Dm;
@@ -640,7 +846,7 @@ void bilateral(cv::Mat& im,cv::Mat& target, float spatialSigma, float colorSigma
 
     // Perform the Gauss transform. For the five-dimensional case the
     // Permutohedral Lattice is appropriate.
-    PermutohedralLattice::filter(&positions[0], 5,
+    PermutohedralLattice::filt(&positions[0], 5,
                                     &values[0], 2,
                                     im.cols*im.rows,
                                     &values[0]);
@@ -650,8 +856,9 @@ void bilateral(cv::Mat& im,cv::Mat& target, float spatialSigma, float colorSigma
     idx = 0;
     for (int y = 0; y < im.cols; y++) {
         for (int x = 0; x < im.rows; x++) {
-            float w = values[idx*2+1];
-            target.at<uchar>(x,y) = values[idx*2+0]/w;
+            // float w = values[idx*2+1];
+            target.at<uchar>(x,y) = values[idx*2+0];
+            // target.at<uchar>(x,y) = values[idx*2+0]/w;
             // float w = values[idx*4+3];
             // target.at<uchar>(x,y) = values[idx*4+0]/w;
             // target.at<cv::uchar>(x,y) = values[idx*4+1]/w;

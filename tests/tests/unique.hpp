@@ -105,6 +105,51 @@
 
 
 
+    void unique(Eigen::Matrix<long long, Eigen::Dynamic, Eigen::Dynamic>& coords_flat,
+                Eigen::Matrix<long long, Eigen::Dynamic, Eigen::Dynamic>& unique_coords,
+                Eigen::Matrix<long long, Eigen::Dynamic, 1>& hashed_coords,
+                std::vector<long long>& unique_hashes)
+    {
+        unique_hashes.clear();
+        std::set<long long> input;
+        clock_t now;
+        now = clock();
+        printf( "start input set : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        for (int i = 0; i < hashed_coords.size(); i++) {
+            input.insert(hashed_coords(i));
+        }
+
+        now = clock();
+        printf( "start resize unique_coords : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        unique_coords.resize(input.size(),coords_flat.cols());
+        nvertices = input.size();
+        unique_hashes.resize(input.size());
+        S = Eigen::SparseMatrix<double>(nvertices,npixels);
+
+        now = clock();
+        printf( "start std::copy : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        std::copy(input.begin(),input.end(),unique_hashes.begin());
+
+        now = clock();
+        printf( "start construct S : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        for (int i = 0; i < hashed_coords.size(); i++) {
+            int id = binarySearchRecursive(&unique_hashes[0],0,unique_hashes.size()-1,hashed_coords(i));  //size()-1?
+            // std::set<double>::iterator got = unique_hashes.find (hashed_coords(i));
+            // if(got != unique_hashes.end())
+            if(id >= 0)
+            {
+                S.insert(id, i) = 1.0;
+                // triple_S.push_back(Eigen::Triplet<double>(id, i, 1.0));
+                unique_coords.row(id) = coords_flat.row(i);
+                // std::cout << "(id,i) : (" << id <<","<< i <<")"<< std::endl;
+            }
+        }
+        // S.setFromTriplets(triple_S.begin(), triple_S.end());
+        now = clock();
+        printf( "end construct S : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+    }
+
+
     void unique(Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic>& coords_flat,
                 Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic>& unique_coords,
                 Eigen::Matrix<long long, Eigen::Dynamic, 1>& hashed_coords,

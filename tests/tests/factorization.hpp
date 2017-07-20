@@ -24,6 +24,78 @@
 
 
 
+    void compute_factorization(Eigen::Matrix<long long, Eigen::Dynamic, Eigen::Dynamic>& coords_flat)
+    {
+        Eigen::Matrix<long long, Eigen::Dynamic, 1> hashed_coords;
+        Eigen::Matrix<long long, Eigen::Dynamic, Eigen::Dynamic> unique_coords;
+        std::vector<long long> unique_hashes;
+        // std::unordered_map<double,int> unique_hashes;
+
+        clock_t now;
+        now = clock();
+        printf( "start hashcoords : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        hash_coords(coords_flat,hashed_coords);
+        // std::cout << "coords_flat:" << std::endl;
+        // std::cout << coords_flat << std::endl;
+        // std::cout << "hashed_coords:" << std::endl;
+        // std::cout << hashed_coords << std::endl;
+
+        now = clock();
+        printf( "start unique : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        unique(coords_flat, unique_coords, hashed_coords, unique_hashes);
+        std::cout << "finish unique()" << std::endl;
+
+        // std::cout << "unique_coords:" << std::endl;
+        // std::cout << unique_coords << std::endl;
+        // std::cout << "unique_hashes:" << std::endl;
+        // std::set<double>::iterator iter=unique_hashes.begin();
+        // while(iter!=unique_hashes.end())
+        // {
+        //     std::cout<<*iter<<std::endl;
+        //     ++iter;
+        // }
+
+
+        now = clock();
+        printf( "start construct blur : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        blurs_test = Eigen::SparseMatrix<double>(nvertices,nvertices);
+        Eigen::VectorXd bl = Eigen::VectorXd::Ones(nvertices);
+        Eigen::Matrix<long long, Eigen::Dynamic, 1> onesx = Eigen::Matrix<long long, Eigen::Dynamic, 1>::Ones(nvertices);
+        Eigen::SparseMatrix<double> blur_temp(nvertices,nvertices);
+        blur_temp = bl.asDiagonal()*2*dim;
+        for (int i = 0; i < dim; i++) {
+            Eigen::SparseMatrix<double> blur(nvertices,nvertices);
+            for (int j = -1; j <= 1; j++) {
+                if(j == 0) continue;
+                // Eigen::SparseMatrix<double> blur_temp(nvertices,nvertices);
+                Eigen::Matrix<long long, Eigen::Dynamic, Eigen::Dynamic> neighbor_coords = unique_coords;
+                Eigen::Matrix<long long, Eigen::Dynamic, 1> neighbor_hashes;
+
+                neighbor_coords.col(i) = neighbor_coords.col(i) + j*onesx;
+
+                hash_coords(neighbor_coords,neighbor_hashes);
+                get_valid_idx(unique_hashes, neighbor_hashes, blur_temp);
+                // blurs_test = blurs_test + blur_temp;
+
+            }
+            // std::cout << "blur:"<< blur << std::endl;
+            std::cout << "blur"<< i << std::endl;
+            // blurs.push_back(blur);
+        }
+        blurs_test.setFromTriplets(triple_blur.begin(), triple_blur.end());
+        blurs_test = blurs_test + blur_temp;
+        now = clock();
+        printf( "finished construct blur : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+
+        // std::cout << "S:" << std::endl;
+        // std::cout << S.cols()<<S.rows() << std::endl;
+        // std::cout << "unique_hashes:" << std::endl;
+        // PrintVector(unique_hashes);
+
+
+    }
+
+
     void compute_factorization(Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic>& coords_flat)
     {
         Eigen::Matrix<long long, Eigen::Dynamic, 1> hashed_coords;

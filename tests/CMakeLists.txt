@@ -67,3 +67,6 @@ ${OpenCV_LIBS}
 
 add_executable(Test run.cpp)
 target_link_libraries(Test ${PROJECT_NAME} )
+
+add_executable(lattice tests/lattice_solver.cpp)
+target_link_libraries(lattice ${PROJECT_NAME} )
