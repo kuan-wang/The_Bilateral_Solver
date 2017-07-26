@@ -20,7 +20,7 @@
 
 int main(int argc, char const *argv[]) {
 
-    args = argv;
+   args = argv;
     // test_unique();
     // test_hash_coords();
     // test_csr_matrix();
@@ -30,7 +30,7 @@ int main(int argc, char const *argv[]) {
     // test_splat();
     // test_slice();
     // test_blur();
-    test_solve();
+   test_solve();
     // test_filt();
     // test_bistochastize();
 

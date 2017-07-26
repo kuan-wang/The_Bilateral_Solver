@@ -33,20 +33,29 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}
 endif()
 
 
+set(OpenCV_DIR "/home/wangkuan/lib/opencv3/share/OpenCV")
+set(Eigen3_DIR "/home/wangkuan/lib/eigen3/share/eigen3/cmake")
+
 find_package( OpenCV REQUIRED )
-#find_package(Eigen3 REQUIRED)
+find_package(Eigen3 REQUIRED)
 
-#set(Eigen3_DIR " /usr/local/include/eigen3")
 
-#message( ${Eigen3_DIR})
+
 
 include_directories(
 ${OpenCV_INCLUDE_DIRS}
-#${EIGEN3_INCLUDE_DIR}
-/home/key/eigen3/include/eigen3/
+${EIGEN3_INCLUDE_DIR}
+/home/wangkuan/lib/opencv/include/opencv
+/home/wangkuan/lib/opencv/include/opencv2
+/home/wangkuan/lib/eigen3/include/eigen3/
 ./tests/
 )
 
+#message( ${EIGEN3_INCLUDE_DIR})
+#message( ${OpenCV__INCLUDE_DIRS})
+
+message( ${Eigen3_DIR})
+message( ${OpenCV_DIR})
 
 #set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
 
@@ -62,7 +71,7 @@ run.cpp
 target_link_libraries(
 ${PROJECT_NAME}
 ${OpenCV_LIBS}
-#${EIGEN3_LIBS}
+${EIGEN3_LIBS}
 )
 
 add_executable(Test run.cpp)
@@ -70,3 +79,9 @@ target_link_libraries(Test ${PROJECT_NAME} )
 
 add_executable(lattice tests/lattice_solver.cpp)
 target_link_libraries(lattice ${PROJECT_NAME} )
+
+add_executable(joint tests/jointbilateral.cpp)
+target_link_libraries(joint ${PROJECT_NAME} )
+
+add_executable(disparity tests/disparity.cpp)
+target_link_libraries(disparity ${PROJECT_NAME} )
