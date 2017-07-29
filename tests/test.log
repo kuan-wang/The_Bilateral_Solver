@@ -1,0 +1,38 @@
+test triples for construct SparseMatrix:
+----------------------------------------------------------------------------
+n = 1000000
+test.insert(i,i) = double(i)    :     19ms
+test.coeffRef(i,i) = double(i)  :     19ms
+
+(v1+v2).push_back     :    8ms
+triples.push_back     :    7ms
+(v1+v2)[i]            :    4ms
+triples[i]            :    7ms
+test.setFromTriplets  :    35ms
+
+unordered_map:
+insert(v2,i)          :    148ms +- 15ms
+hash_find(v2)         :    35ms  +- 2ms
+hash_find(v3)         :    45ms  +- 4ms
+binary_find(v2)       :    206ms +- 20ms
+binary_find(v3)       :    206ms +- 20ms
+
+----------------------------------------------------------------------------
+n = 10000000
+test.insert(i,i) = double(i)    :     155ms +- 15ms
+test.coeffRef(i,i) = double(i)  :     157ms +- 20ms
+
+(v1+v2).push_back     :    69ms  +- 5ms
+triples.push_back     :    202ms +- 20ms
+(v1+v2)[i]            :    33ms  +- 3ms
+triples[i]            :    65ms  +- 6ms
+test.setFromTriplets  :    298ms +- 25ms
+
+unordered_map:
+insert(v2,i)          :    1700ms +- 40ms
+hash_find(v2)         :    415ms  +- 5ms
+hash_find(v3)         :    500ms  +- 3ms
+binary_find(v2)       :    4000ms +- 80ms
+binary_find(v3)       :    4050ms +- 80ms
+
+----------------------------------------------------------------------------

@@ -48,7 +48,7 @@
         for (int i = 0; i < candidates.size(); i++)
         {
 
-            int id = binarySearchRecursive(&valid[0],0,valid.size()-1,candidates(i));   //size()-1?
+            int id = binarySearchRecursive<long long>(&valid[0],0,valid.size()-1,candidates(i));   //size()-1?
             if(id >= 0)
             {
                 triple_blur.push_back(Eigen::Triplet<double>(id, i, 1.0));
@@ -66,7 +66,7 @@
         for (int i = 0; i < candidates.size(); i++)
         {
 
-            int id = binarySearchRecursive(&valid[0],0,valid.size()-1,candidates(i));   //size()-1?
+            int id = binarySearchRecursive<double>(&valid[0],0,valid.size()-1,candidates(i));   //size()-1?
             if(id >= 0)
             {
                 // std::cout << "(i,id) : (" << i <<","<< id <<")"<< std::endl;
@@ -85,7 +85,7 @@
         locs.clear();
         for (int i = 0; i < candidates.size(); i++)
         {
-            int id = binarySearchRecursive(&valid[0],0,valid.size(),candidates[i]);
+            int id = binarySearchRecursive<double>(&valid[0],0,valid.size(),candidates[i]);
             if(id >= 0)
             {
                 locs.push_back(id);

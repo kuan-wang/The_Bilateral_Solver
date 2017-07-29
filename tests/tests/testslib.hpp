@@ -33,14 +33,15 @@
 
 	#include <time.h>
 	#include <string>
+  #include <chrono>
 	#include <vector>
 	#include <cstring>
 	#include <sstream>
 	#include <iostream>
 	#include <typeinfo>
 	#include <exception>
-    #include <unordered_map>
-    #include <unordered_set>
+  #include <unordered_map>
+  #include <unordered_set>
 
 
 	#include <Eigen/Dense>
@@ -48,6 +49,11 @@
 	#include <Eigen/SparseCholesky>
 	#include <Eigen/IterativeLinearSolvers>
 	#include <Eigen/Sparse>
+
+	#include<opencv2/core/core.hpp>
+	// #include<opencv2/core/eigen.hpp>
+	#include<opencv2/highgui.hpp>
+	#include<opencv2/opencv.hpp>
 
 	// #include "omp.h"
 	#include <omp.h>
@@ -62,8 +68,8 @@ static int dim = 5;
 static int pd = 5;
 static int vd = 4;
 static std::vector<Eigen::SparseMatrix<double> > blurs;
-static std::vector<Eigen::Triplet<double> > triple_blur;
-static std::vector<Eigen::Triplet<double> > triple_S;
+static std::vector<Eigen::Triplet<double> > triple_blur(100000*10);
+static std::vector<Eigen::Triplet<double> > triple_S(1000000);
 static Eigen::SparseMatrix<double> blurs_test;
 static Eigen::SparseMatrix<double> S;
 static Eigen::SparseMatrix<double> Dn;
@@ -193,7 +199,7 @@ const char** args;
 		vector<T> vector(size, 0);
 
 		for (int i = 0; i < size; i++) {
-			vector[i] = rand() % (2);
+			vector[i] = rand() % (size);
 			// vector[i] = rand() % 101;
 		}
 

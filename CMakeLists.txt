@@ -36,19 +36,20 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}
 endif()
 
 
+set(OpenCV_DIR "/home/wangkuan/lib/opencv3/share/OpenCV")
+set(Eigen3_DIR "/home/wangkuan/lib/eigen3/share/eigen3/cmake")
 
 
-find_package( OpenCV REQUIRED )
-#find_package(Eigen3 REQUIRED)
+find_package(OpenCV REQUIRED )
+find_package(Eigen3 REQUIRED)
 
-#set(Eigen3_DIR " /usr/local/include/eigen3")
 
-#message( ${Eigen3_DIR})
+message( ${OpenCV_DIR})
+message( ${Eigen3_DIR})
 
 include_directories(
 ${OpenCV_INCLUDE_DIRS}
-#${EIGEN3_INCLUDE_DIR}
-/home/key/eigen3/include/eigen3/
+${EIGEN3_INCLUDE_DIR}
 )
 
 
@@ -67,7 +68,7 @@ BilateralGrid.cpp
 
 target_link_libraries(${PROJECT_NAME}
 ${OpenCV_LIBS}
-#${EIGEN3_LIBS}
+${EIGEN3_LIBS}
 )
 
 add_executable( Colorize colorization.cpp)

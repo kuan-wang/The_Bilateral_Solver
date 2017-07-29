@@ -45,9 +45,6 @@ find_package(Eigen3 REQUIRED)
 include_directories(
 ${OpenCV_INCLUDE_DIRS}
 ${EIGEN3_INCLUDE_DIR}
-/home/wangkuan/lib/opencv/include/opencv
-/home/wangkuan/lib/opencv/include/opencv2
-/home/wangkuan/lib/eigen3/include/eigen3/
 ./tests/
 )
 
@@ -85,3 +82,6 @@ target_link_libraries(joint ${PROJECT_NAME} )
 
 add_executable(disparity tests/disparity.cpp)
 target_link_libraries(disparity ${PROJECT_NAME} )
+
+add_executable(parallelfor tests/parallel_for_test.cpp tests/parallel_for_test.hpp)
+target_link_libraries(parallelfor ${PROJECT_NAME} )

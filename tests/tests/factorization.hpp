@@ -20,8 +20,146 @@
 #include "unique.hpp"
 #include "csrmatrix.hpp"
 #include "getvalididx.hpp"
+// #include "bistochastize.hpp"
 #include "testslib.hpp"
 
+
+    void compute_factorization(cv::Mat& reference_bgr, double sigma_spatial, double sigma_luma, double sigma_chroma)
+    {
+
+	      cv::Mat reference_yuv;
+	      cv::cvtColor(reference_bgr, reference_yuv, CV_BGR2YUV);
+
+	      std::chrono::steady_clock::time_point begin_grid_construction = std::chrono::steady_clock::now();
+
+	      const int w = reference_yuv.cols;
+	      const int h = reference_yuv.rows;
+        npixels = w*h;
+	      std::int64_t hash_vec[5];
+	      for (int i = 0; i < 5; ++i)
+		        hash_vec[i] = static_cast<std::int64_t>(std::pow(255, i));
+
+	      std::unordered_map<std::int64_t /* hash */, int /* vert id */> hashed_coords;
+	      hashed_coords.reserve(w*h);
+
+	      const unsigned char* pref = (const unsigned char*)reference_yuv.data;
+	      int vert_idx = 0;
+	      int pix_idx = 0;
+
+
+      	// loop through each pixel of the image
+        // Eigen::SparseMatrix<double, Eigen::RowMajor>(
+        Eigen::SparseMatrix<double> S_temp(npixels,npixels);
+      	for (int y = 0; y < h; ++y)
+      	{
+      		for (int x = 0; x < w; ++x)
+      		{
+      			std::int64_t coord[5];
+      			coord[0] = int(x / sigma_spatial);
+      			coord[1] = int(y / sigma_spatial);
+      			coord[2] = int(pref[0] / sigma_luma);
+      			coord[3] = int(pref[1] / sigma_chroma);
+      			coord[4] = int(pref[2] / sigma_chroma);
+
+      			// convert the coordinate to a hash value
+      			std::int64_t hash_coord = 0;
+      			for (int i = 0; i < 5; ++i)
+      				  hash_coord += coord[i] * hash_vec[i];
+
+      			// pixels whom are alike will have the same hash value.
+      			// We only want to keep a unique list of hash values, therefore make sure we only insert
+      			// unique hash values.
+      			auto it = hashed_coords.find(hash_coord);
+      			if (it == hashed_coords.end())
+      			{
+      				hashed_coords.insert(std::pair<std::int64_t, int>(hash_coord, vert_idx));
+      				// tripletList.push_back(T(vert_idx, pix_idx, 1.0f));
+              S_temp.insert(vert_idx,pix_idx) = 1.0f;
+      				++vert_idx;
+      			}
+      			else
+      			{
+      				// tripletList.push_back(T(it->second, pix_idx, 1.0f));
+              S_temp.insert(it->second,pix_idx) = 1.0f;
+      			}
+
+      			pref += 3; // skip 3 bytes (y u v)
+      			++pix_idx;
+      		}
+      	}
+        nvertices = hashed_coords.size();
+        S = Eigen::SparseMatrix<double>(nvertices, npixels);
+        S = S_temp.middleRows(0, nvertices);
+        S.finalize();
+        std::cout << "nvertices:"<<nvertices << '\n';
+        // std::cout << S_temp.nonZeros() << '\n';
+        // std::cout << S_temp.rows()<<"x"<<S_temp.cols() << '\n';
+        // std::cout << S.nonZeros() << '\n';
+        // std::cout << S.rows()<<"x"<<S.cols() << '\n';
+      	std::chrono::steady_clock::time_point end_splat_construction = std::chrono::steady_clock::now();
+      	std::cout << "S construction: " << std::chrono::duration_cast<std::chrono::milliseconds>(end_splat_construction - begin_grid_construction).count() << "ms" << std::endl;
+
+
+
+      	// Blur matrices   // Eigen::RowMajor or Eigen::ColMajor???
+      	std::chrono::steady_clock::time_point begin_blur_construction = std::chrono::steady_clock::now();
+        // blurs_test = Eigen::SparseMatrix<double>(nvertices,nvertices);
+        Eigen::VectorXd ones_nvertices = Eigen::VectorXd::Ones(nvertices);
+        Eigen::VectorXd ones_npixels = Eigen::VectorXd::Ones(npixels);
+        blurs_test = ones_nvertices.asDiagonal();
+        blurs_test *= 10;
+        for(int offset = -1; offset <= 1;++offset)
+        {
+            if(offset == 0) continue;
+          	for (int i = 0; i < 5; ++i)
+          	{
+          	     Eigen::SparseMatrix<double> blur_temp(hashed_coords.size(), hashed_coords.size());
+          		   std::int64_t offset_hash_coord = offset * hash_vec[i];
+
+        		     for (auto it = hashed_coords.begin(); it != hashed_coords.end(); ++it)
+      		       {
+      			         std::int64_t neighb_coord = it->first + offset_hash_coord;
+      			         auto it_neighb = hashed_coords.find(neighb_coord);
+      			         if (it_neighb != hashed_coords.end())
+          			     {
+                         blur_temp.insert(it->second,it_neighb->second) = 1.0f;
+          			     }
+
+          		   }
+                 blurs_test += blur_temp;
+              }
+        }
+
+        blurs_test.finalize();
+        std::cout <<"blurs_test:"<< blurs_test.nonZeros() << '\n';
+        std::cout << blurs_test.rows()<<"x"<<blurs_test.cols() << '\n';
+        // std::cout << S.nonZeros() << '\n';
+        // std::cout << S.rows()<<"x"<<S.cols() << '\n';
+
+
+      	std::chrono::steady_clock::time_point end_blur_construction = std::chrono::steady_clock::now();
+      	std::cout << "blur construction: " << std::chrono::duration_cast<std::chrono::milliseconds>(end_blur_construction - begin_blur_construction).count() << "ms" << std::endl;
+
+        //bistochastize
+        int maxiter = 10;
+        Eigen::VectorXd n = ones_nvertices;
+        Eigen::VectorXd m = S*ones_npixels;
+        Eigen::VectorXd bluredn;
+
+        for (int i = 0; i < maxiter; i++) {
+            bluredn = blurs_test*n;
+            n = ((n.array()*m.array()).array()/bluredn.array()).array().sqrt();
+        }
+        m = n.array() * (blurs_test*n).array();
+        // diags(m,Dm);
+        // diags(n,Dn);
+        Dm = m.asDiagonal();
+        Dn = n.asDiagonal();
+      	std::chrono::steady_clock::time_point end_bisto_construction = std::chrono::steady_clock::now();
+      	std::cout << "Dm Dn construction: " << std::chrono::duration_cast<std::chrono::milliseconds>(end_bisto_construction - end_blur_construction).count() << "ms" << std::endl;
+
+
+    }
 
 
     void compute_factorization(Eigen::Matrix<long long, Eigen::Dynamic, Eigen::Dynamic>& coords_flat)
@@ -43,6 +181,7 @@
         now = clock();
         printf( "start unique : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
         unique(coords_flat, unique_coords, hashed_coords, unique_hashes);
+        S.finalize();
         std::cout << "finish unique()" << std::endl;
 
         // std::cout << "unique_coords:" << std::endl;
@@ -84,8 +223,9 @@
         }
         blurs_test.setFromTriplets(triple_blur.begin(), triple_blur.end());
         blurs_test = blurs_test + blur_temp;
+        blurs_test.finalize();
         now = clock();
-        printf( "finished construct blur : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        printf( "finished construct blur.finalize() : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
 
         // std::cout << "S:" << std::endl;
         // std::cout << S.cols()<<S.rows() << std::endl;

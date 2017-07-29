@@ -6,6 +6,7 @@
 #include "opencv2/ximgproc/disparity_filter.hpp"
 #include <iostream>
 #include <string>
+#include <chrono>
 
 using namespace cv;
 using namespace cv::ximgproc;
@@ -34,6 +35,11 @@ const String keys =
 
 int main(int argc, char** argv)
 {
+
+    clock_t now;
+
+	  std::chrono::steady_clock::time_point start_test = std::chrono::steady_clock::now();
+
     CommandLineParser parser(argc,argv,keys);
     parser.about("Disparity Filtering Demo");
     if (parser.has("help"))
@@ -78,19 +84,38 @@ int main(int argc, char** argv)
     }
 
     //! [load_views]
-    Mat left  = imread(left_im ,IMREAD_COLOR);
-    if ( left.empty() )
-    {
-        cout<<"Cannot read image file: "<<left_im;
-        return -1;
-    }
 
-    Mat right = imread(right_im,IMREAD_COLOR);
-    if ( right.empty() )
-    {
-        cout<<"Cannot read image file: "<<right_im;
-        return -1;
-    }
+  	Mat pair_image;
+  	Mat left;
+  	Mat right;
+  	pair_image = cv::imread(left_im, IMREAD_COLOR);
+
+  	if (pair_image.cols > 0)
+  	{
+  		right = pair_image(cv::Rect(0, 0, pair_image.cols >> 1, pair_image.rows)).clone();
+  		left = pair_image(cv::Rect(pair_image.cols >> 1, 0, pair_image.cols >> 1, pair_image.rows)).clone();
+      imwrite("left_im.jpg", left);
+      imwrite("right_im.jpg", right);
+  	}
+  	else
+  	{
+  		std::cout << "failed to load " << left_im << std::endl;
+  		return -1;
+  	}
+
+    // Mat left  = imread(left_im ,IMREAD_COLOR);
+    // if ( left.empty() )
+    // {
+    //     cout<<"Cannot read image file: "<<left_im;
+    //     return -1;
+    // }
+    //
+    // Mat right = imread(right_im,IMREAD_COLOR);
+    // if ( right.empty() )
+    // {
+    //     cout<<"Cannot read image file: "<<right_im;
+    //     return -1;
+    // }
     //! [load_views]
 
     bool noGT;
@@ -107,6 +132,10 @@ int main(int argc, char** argv)
         }
     }
 
+
+    // cv::setNumThreads(cv::getNumberOfCPUs());
+    cv::setNumThreads(1);
+
     Mat left_for_matcher, right_for_matcher;
     Mat left_disp,right_disp;
     Mat filtered_disp;
@@ -120,11 +149,13 @@ int main(int argc, char** argv)
         cout<<"Incorrect max_disparity value: it should be positive and divisible by 16";
         return -1;
     }
+
     if(wsize<=0 || wsize%2!=1)
     {
         cout<<"Incorrect window_size value: it should be positive and odd";
         return -1;
     }
+
     if(filter=="wls_conf") // filtering with confidence (significantly better quality than wls_no_conf)
     {
         if(!no_downscale)
@@ -145,6 +176,8 @@ int main(int argc, char** argv)
             right_for_matcher = right.clone();
         }
 
+	      std::chrono::steady_clock::time_point start_match_and_filter = std::chrono::steady_clock::now();
+	      std::cout << "before matching: " << std::chrono::duration_cast<std::chrono::milliseconds>(start_match_and_filter - start_test).count() << "ms" << std::endl;
         if(algo=="bm")
         {
             //! [matching]
@@ -156,9 +189,12 @@ int main(int argc, char** argv)
             cvtColor(right_for_matcher, right_for_matcher, COLOR_BGR2GRAY);
 
             matching_time = (double)getTickCount();
+	          std::chrono::steady_clock::time_point start_match = std::chrono::steady_clock::now();
             left_matcher-> compute(left_for_matcher, right_for_matcher,left_disp);
             right_matcher->compute(right_for_matcher,left_for_matcher, right_disp);
+	          std::chrono::steady_clock::time_point end_match = std::chrono::steady_clock::now();
             matching_time = ((double)getTickCount() - matching_time)/getTickFrequency();
+	          std::cout << "test matching(bm): " << std::chrono::duration_cast<std::chrono::milliseconds>(end_match - start_match).count() << "ms" << std::endl;
             //! [matching]
         }
         else if(algo=="sgbm")
@@ -172,9 +208,12 @@ int main(int argc, char** argv)
             Ptr<StereoMatcher> right_matcher = createRightMatcher(left_matcher);
 
             matching_time = (double)getTickCount();
+	          std::chrono::steady_clock::time_point start_match = std::chrono::steady_clock::now();
             left_matcher-> compute(left_for_matcher, right_for_matcher,left_disp);
             right_matcher->compute(right_for_matcher,left_for_matcher, right_disp);
+	          std::chrono::steady_clock::time_point end_match = std::chrono::steady_clock::now();
             matching_time = ((double)getTickCount() - matching_time)/getTickFrequency();
+	          std::cout << "test matching(sgbm): " << std::chrono::duration_cast<std::chrono::milliseconds>(end_match - start_match).count() << "ms" << std::endl;
         }
         else
         {
@@ -186,8 +225,11 @@ int main(int argc, char** argv)
         wls_filter->setLambda(lambda);
         wls_filter->setSigmaColor(sigma);
         filtering_time = (double)getTickCount();
+	      std::chrono::steady_clock::time_point start_filter = std::chrono::steady_clock::now();
         wls_filter->filter(left_disp,left,filtered_disp,right_disp);
         filtering_time = ((double)getTickCount() - filtering_time)/getTickFrequency();
+	      std::chrono::steady_clock::time_point end_filter = std::chrono::steady_clock::now();
+	      std::cout << "test filtering: " << std::chrono::duration_cast<std::chrono::milliseconds>(end_filter - start_filter).count() << "ms" << std::endl;
         //! [filtering]
         conf_map = wls_filter->getConfidenceMap();
 
@@ -263,6 +305,7 @@ int main(int argc, char** argv)
     cout.precision(2);
     cout<<"Matching time:  "<<matching_time<<"s"<<endl;
     cout<<"Filtering time: "<<filtering_time<<"s"<<endl;
+    cout<<"NumThreads: "<<cv::getNumThreads()<<endl;
     cout<<endl;
 
     double MSE_before,percent_bad_before,MSE_after,percent_bad_after;
@@ -290,8 +333,11 @@ int main(int argc, char** argv)
     }
     if(dst_raw_path!="None")
     {
+        Rect rect(1, 0, 1240, 376);
         Mat raw_disp_vis;
+        // Mat raw_disp_vis1 = conf_map.clone();
         getDisparityVis(left_disp,raw_disp_vis,vis_mult);
+        // raw_disp_vis.copyTo(raw_disp_vis1(rect));
         imwrite(dst_raw_path,raw_disp_vis);
     }
     if(dst_conf_path!="None")
