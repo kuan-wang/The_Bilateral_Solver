@@ -16,7 +16,7 @@
 #include "testslib.hpp"
 
 
-    void csr_matrix(Eigen::SparseMatrix<double>& spmat, std::vector<double>& values,
+    void csr_matrix(Eigen::SparseMatrix<float>& spmat, std::vector<float>& values,
                     std::vector<int>& rows, std::vector<int>& cols)
     {
         for (int i = 0; i < values.size(); i++) {
@@ -24,7 +24,7 @@
         }
     }
 
-    void csr_matrix(Eigen::SparseMatrix<double>& spmat, std::vector<int>& rows, std::vector<int>& cols)
+    void csr_matrix(Eigen::SparseMatrix<float>& spmat, std::vector<int>& rows, std::vector<int>& cols)
     {
         for (int i = 0; i < rows.size(); i++) {
             spmat.insert(rows[i],cols[i]) = 1;
@@ -34,8 +34,8 @@
 
     void test_csr_matrix()
     {
-        Eigen::SparseMatrix<double> spmat(npixels*2, npixels*3);
-        std::vector<double> values = generateRandomVector<double>(npixels*2);
+        Eigen::SparseMatrix<float> spmat(npixels*2, npixels*3);
+        std::vector<float> values = generateRandomVector<float>(npixels*2);
         std::vector<int> rows = generateRandomVector<int>(npixels*2);
         std::vector<int> cols = generateRandomVector<int>(npixels*2);
 

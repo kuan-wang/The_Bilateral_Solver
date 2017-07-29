@@ -24,7 +24,7 @@
 #include "testslib.hpp"
 
 
-    void compute_factorization(cv::Mat& reference_bgr, double sigma_spatial, double sigma_luma, double sigma_chroma)
+    void compute_factorization(cv::Mat& reference_bgr, float sigma_spatial, float sigma_luma, float sigma_chroma)
     {
 
 	      cv::Mat reference_yuv;
@@ -48,8 +48,9 @@
 
 
       	// loop through each pixel of the image
-        // Eigen::SparseMatrix<double, Eigen::RowMajor>(
-        Eigen::SparseMatrix<double> S_temp(npixels,npixels);
+        // Eigen::SparseMatrix<float, Eigen::RowMajor>(
+        Eigen::SparseMatrix<float> S_temp(npixels,npixels);
+        // S_temp.reserve(Eigen::VectorXi::Constant(npixels,1));
       	for (int y = 0; y < h; ++y)
       	{
       		for (int x = 0; x < w; ++x)
@@ -88,7 +89,8 @@
       		}
       	}
         nvertices = hashed_coords.size();
-        S = Eigen::SparseMatrix<double>(nvertices, npixels);
+        // S_temp.makeCompressed();
+        S = Eigen::SparseMatrix<float>(nvertices, npixels);
         S = S_temp.middleRows(0, nvertices);
         S.finalize();
         std::cout << "nvertices:"<<nvertices << '\n';
@@ -103,9 +105,9 @@
 
       	// Blur matrices   // Eigen::RowMajor or Eigen::ColMajor???
       	std::chrono::steady_clock::time_point begin_blur_construction = std::chrono::steady_clock::now();
-        // blurs_test = Eigen::SparseMatrix<double>(nvertices,nvertices);
-        Eigen::VectorXd ones_nvertices = Eigen::VectorXd::Ones(nvertices);
-        Eigen::VectorXd ones_npixels = Eigen::VectorXd::Ones(npixels);
+        // blurs_test = Eigen::SparseMatrix<float>(nvertices,nvertices);
+        Eigen::VectorXf ones_nvertices = Eigen::VectorXf::Ones(nvertices);
+        Eigen::VectorXf ones_npixels = Eigen::VectorXf::Ones(npixels);
         blurs_test = ones_nvertices.asDiagonal();
         blurs_test *= 10;
         for(int offset = -1; offset <= 1;++offset)
@@ -113,7 +115,8 @@
             if(offset == 0) continue;
           	for (int i = 0; i < 5; ++i)
           	{
-          	     Eigen::SparseMatrix<double> blur_temp(hashed_coords.size(), hashed_coords.size());
+          	     Eigen::SparseMatrix<float> blur_temp(hashed_coords.size(), hashed_coords.size());
+                //  blur_temp.reserve(Eigen::VectorXi::Constant(nvertices,6));
           		   std::int64_t offset_hash_coord = offset * hash_vec[i];
 
         		     for (auto it = hashed_coords.begin(); it != hashed_coords.end(); ++it)
@@ -126,6 +129,7 @@
           			     }
 
           		   }
+                //  blur_temp.makeCompressed();
                  blurs_test += blur_temp;
               }
         }
@@ -142,9 +146,9 @@
 
         //bistochastize
         int maxiter = 10;
-        Eigen::VectorXd n = ones_nvertices;
-        Eigen::VectorXd m = S*ones_npixels;
-        Eigen::VectorXd bluredn;
+        Eigen::VectorXf n = ones_nvertices;
+        Eigen::VectorXf m = S*ones_npixels;
+        Eigen::VectorXf bluredn;
 
         for (int i = 0; i < maxiter; i++) {
             bluredn = blurs_test*n;
@@ -167,11 +171,11 @@
         Eigen::Matrix<long long, Eigen::Dynamic, 1> hashed_coords;
         Eigen::Matrix<long long, Eigen::Dynamic, Eigen::Dynamic> unique_coords;
         std::vector<long long> unique_hashes;
-        // std::unordered_map<double,int> unique_hashes;
+        // std::unordered_map<float,int> unique_hashes;
 
         clock_t now;
         now = clock();
-        printf( "start hashcoords : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        printf( "start hashcoords : now is %f seconds\n\n", (float)(now) / CLOCKS_PER_SEC);
         hash_coords(coords_flat,hashed_coords);
         // std::cout << "coords_flat:" << std::endl;
         // std::cout << coords_flat << std::endl;
@@ -179,7 +183,7 @@
         // std::cout << hashed_coords << std::endl;
 
         now = clock();
-        printf( "start unique : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        printf( "start unique : now is %f seconds\n\n", (float)(now) / CLOCKS_PER_SEC);
         unique(coords_flat, unique_coords, hashed_coords, unique_hashes);
         S.finalize();
         std::cout << "finish unique()" << std::endl;
@@ -187,7 +191,7 @@
         // std::cout << "unique_coords:" << std::endl;
         // std::cout << unique_coords << std::endl;
         // std::cout << "unique_hashes:" << std::endl;
-        // std::set<double>::iterator iter=unique_hashes.begin();
+        // std::set<float>::iterator iter=unique_hashes.begin();
         // while(iter!=unique_hashes.end())
         // {
         //     std::cout<<*iter<<std::endl;
@@ -196,17 +200,17 @@
 
 
         now = clock();
-        printf( "start construct blur : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
-        blurs_test = Eigen::SparseMatrix<double>(nvertices,nvertices);
-        Eigen::VectorXd bl = Eigen::VectorXd::Ones(nvertices);
+        printf( "start construct blur : now is %f seconds\n\n", (float)(now) / CLOCKS_PER_SEC);
+        blurs_test = Eigen::SparseMatrix<float>(nvertices,nvertices);
+        Eigen::VectorXf bl = Eigen::VectorXf::Ones(nvertices);
         Eigen::Matrix<long long, Eigen::Dynamic, 1> onesx = Eigen::Matrix<long long, Eigen::Dynamic, 1>::Ones(nvertices);
-        Eigen::SparseMatrix<double> blur_temp(nvertices,nvertices);
+        Eigen::SparseMatrix<float> blur_temp(nvertices,nvertices);
         blur_temp = bl.asDiagonal()*2*dim;
         for (int i = 0; i < dim; i++) {
-            Eigen::SparseMatrix<double> blur(nvertices,nvertices);
+            Eigen::SparseMatrix<float> blur(nvertices,nvertices);
             for (int j = -1; j <= 1; j++) {
                 if(j == 0) continue;
-                // Eigen::SparseMatrix<double> blur_temp(nvertices,nvertices);
+                // Eigen::SparseMatrix<float> blur_temp(nvertices,nvertices);
                 Eigen::Matrix<long long, Eigen::Dynamic, Eigen::Dynamic> neighbor_coords = unique_coords;
                 Eigen::Matrix<long long, Eigen::Dynamic, 1> neighbor_hashes;
 
@@ -225,7 +229,7 @@
         blurs_test = blurs_test + blur_temp;
         blurs_test.finalize();
         now = clock();
-        printf( "finished construct blur.finalize() : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        printf( "finished construct blur.finalize() : now is %f seconds\n\n", (float)(now) / CLOCKS_PER_SEC);
 
         // std::cout << "S:" << std::endl;
         // std::cout << S.cols()<<S.rows() << std::endl;
@@ -241,11 +245,11 @@
         Eigen::Matrix<long long, Eigen::Dynamic, 1> hashed_coords;
         Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic> unique_coords;
         std::vector<long long> unique_hashes;
-        // std::unordered_map<double,int> unique_hashes;
+        // std::unordered_map<float,int> unique_hashes;
 
         clock_t now;
         now = clock();
-        printf( "start hashcoords : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        printf( "start hashcoords : now is %f seconds\n\n", (float)(now) / CLOCKS_PER_SEC);
         hash_coords(coords_flat,hashed_coords);
         // std::cout << "coords_flat:" << std::endl;
         // std::cout << coords_flat << std::endl;
@@ -253,14 +257,14 @@
         // std::cout << hashed_coords << std::endl;
 
         now = clock();
-        printf( "start unique : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        printf( "start unique : now is %f seconds\n\n", (float)(now) / CLOCKS_PER_SEC);
         unique(coords_flat, unique_coords, hashed_coords, unique_hashes);
         std::cout << "finish unique()" << std::endl;
 
         // std::cout << "unique_coords:" << std::endl;
         // std::cout << unique_coords << std::endl;
         // std::cout << "unique_hashes:" << std::endl;
-        // std::set<double>::iterator iter=unique_hashes.begin();
+        // std::set<float>::iterator iter=unique_hashes.begin();
         // while(iter!=unique_hashes.end())
         // {
         //     std::cout<<*iter<<std::endl;
@@ -269,16 +273,16 @@
 
 
         now = clock();
-        printf( "start construct blur : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
-        blurs_test = Eigen::SparseMatrix<double>(nvertices,nvertices);
-        Eigen::VectorXd bl = Eigen::VectorXd::Ones(nvertices);
+        printf( "start construct blur : now is %f seconds\n\n", (float)(now) / CLOCKS_PER_SEC);
+        blurs_test = Eigen::SparseMatrix<float>(nvertices,nvertices);
+        Eigen::VectorXf bl = Eigen::VectorXf::Ones(nvertices);
         Eigen::Matrix<unsigned char, Eigen::Dynamic, 1> onesx = Eigen::Matrix<unsigned char, Eigen::Dynamic, 1>::Ones(nvertices);
         blurs_test = bl.asDiagonal()*2*dim;
         for (int i = 0; i < dim; i++) {
-            Eigen::SparseMatrix<double> blur(nvertices,nvertices);
+            Eigen::SparseMatrix<float> blur(nvertices,nvertices);
             for (int j = -1; j <= 1; j++) {
                 if(j == 0) continue;
-                Eigen::SparseMatrix<double> blur_temp(nvertices,nvertices);
+                Eigen::SparseMatrix<float> blur_temp(nvertices,nvertices);
                 Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic> neighbor_coords = unique_coords;
                 Eigen::Matrix<long long, Eigen::Dynamic, 1> neighbor_hashes;
 
@@ -312,7 +316,7 @@
             // blurs.push_back(blur);
         }
         now = clock();
-        printf( "finished construct blur : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        printf( "finished construct blur : now is %f seconds\n\n", (float)(now) / CLOCKS_PER_SEC);
 
         // std::cout << "S:" << std::endl;
         // std::cout << S.cols()<<S.rows() << std::endl;
@@ -323,16 +327,16 @@
     }
 
 
-    void compute_factorization(Eigen::MatrixXd& coords_flat)
+    void compute_factorization(Eigen::MatrixXf& coords_flat)
     {
-        Eigen::VectorXd hashed_coords;
-        Eigen::MatrixXd unique_coords;
-        std::vector<double> unique_hashes;
-        // std::unordered_map<double,int> unique_hashes;
+        Eigen::VectorXf hashed_coords;
+        Eigen::MatrixXf unique_coords;
+        std::vector<float> unique_hashes;
+        // std::unordered_map<float,int> unique_hashes;
 
         clock_t now;
         now = clock();
-        printf( "start hashcoords : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        printf( "start hashcoords : now is %f seconds\n\n", (float)(now) / CLOCKS_PER_SEC);
         hash_coords(coords_flat,hashed_coords);
         // std::cout << "coords_flat:" << std::endl;
         // std::cout << coords_flat << std::endl;
@@ -340,14 +344,14 @@
         // std::cout << hashed_coords << std::endl;
 
         now = clock();
-        printf( "start unique : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        printf( "start unique : now is %f seconds\n\n", (float)(now) / CLOCKS_PER_SEC);
         unique(coords_flat, unique_coords, hashed_coords, unique_hashes);
         std::cout << "finish unique()" << std::endl;
 
         // std::cout << "unique_coords:" << std::endl;
         // std::cout << unique_coords << std::endl;
         // std::cout << "unique_hashes:" << std::endl;
-        // std::set<double>::iterator iter=unique_hashes.begin();
+        // std::set<float>::iterator iter=unique_hashes.begin();
         // while(iter!=unique_hashes.end())
         // {
         //     std::cout<<*iter<<std::endl;
@@ -356,17 +360,17 @@
 
 
         now = clock();
-        printf( "start construct blur : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
-        blurs_test = Eigen::SparseMatrix<double>(nvertices,nvertices);
-        Eigen::VectorXd bl = Eigen::VectorXd::Ones(nvertices);
+        printf( "start construct blur : now is %f seconds\n\n", (float)(now) / CLOCKS_PER_SEC);
+        blurs_test = Eigen::SparseMatrix<float>(nvertices,nvertices);
+        Eigen::VectorXf bl = Eigen::VectorXf::Ones(nvertices);
         blurs_test = bl.asDiagonal()*2*dim;
         for (int i = 0; i < dim; i++) {
-            Eigen::SparseMatrix<double> blur(nvertices,nvertices);
+            Eigen::SparseMatrix<float> blur(nvertices,nvertices);
             for (int j = -1; j <= 1; j++) {
                 if(j == 0) continue;
-                Eigen::SparseMatrix<double> blur_temp(nvertices,nvertices);
-                Eigen::MatrixXd neighbor_coords = unique_coords;
-                Eigen::VectorXd neighbor_hashes;
+                Eigen::SparseMatrix<float> blur_temp(nvertices,nvertices);
+                Eigen::MatrixXf neighbor_coords = unique_coords;
+                Eigen::VectorXf neighbor_hashes;
 
                 // std::vector<int> valid_coord;
                 // std::vector<int> neighbor_idx;
@@ -398,7 +402,7 @@
             // blurs.push_back(blur);
         }
         now = clock();
-        printf( "finished construct blur : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        printf( "finished construct blur : now is %f seconds\n\n", (float)(now) / CLOCKS_PER_SEC);
 
         // std::cout << "S:" << std::endl;
         // std::cout << S.cols()<<S.rows() << std::endl;
@@ -409,20 +413,20 @@
     }
 
 
-    void compute_factorization(std::vector<double>& coords_flat)
+    void compute_factorization(std::vector<float>& coords_flat)
     {
-        std::vector<double> hashed_coords;
-        std::vector<double> unique_hashes;
-        std::vector<double> unique_coords;
+        std::vector<float> hashed_coords;
+        std::vector<float> unique_hashes;
+        std::vector<float> unique_coords;
         std::vector<int> unique_idx;
         std::vector<int> idx;
-        // std::vector<double> ones_npixels(npixels,1.0);
+        // std::vector<float> ones_npixels(npixels,1.0);
         std::vector<int> arange_npixels(npixels);
         // std::vector<int> test_npixels(npixels*30);
 
         clock_t now;
         now = clock();
-        printf( "start test for : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        printf( "start test for : now is %f seconds\n\n", (float)(now) / CLOCKS_PER_SEC);
     // #pragma omp parallel for num_threads(4)
     // #pragma omp parallel for
         for (int i = 0; i < npixels; i++) {
@@ -445,7 +449,7 @@
     //     }
 
         now = clock();
-        printf( "end for : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        printf( "end for : now is %f seconds\n\n", (float)(now) / CLOCKS_PER_SEC);
 
         std::cout << "start hash_coords(coords_flat,hash_coords)" << std::endl;
         hash_coords(coords_flat,hashed_coords);
@@ -464,7 +468,7 @@
 
 
         nvertices = unique_idx.size();
-        S = Eigen::SparseMatrix<double>(nvertices,npixels);
+        S = Eigen::SparseMatrix<float>(nvertices,npixels);
 
         std::cout << "start Construct csr_matrix S" << std::endl;
         // csr_matrix(S, ones_npixels, idx, arange_npixels);
@@ -480,12 +484,12 @@
 
         std::cout << "start Construct blurs" << std::endl;
         for (int i = 0; i < dim; i++) {
-            Eigen::SparseMatrix<double> blur(nvertices,nvertices);
+            Eigen::SparseMatrix<float> blur(nvertices,nvertices);
             for (int j = -1; j <= 1; j++) {
                 if(j == 0) continue;
-                Eigen::SparseMatrix<double> blur_temp(nvertices,nvertices);
-                std::vector<double> neighbor_coords = unique_coords;
-                std::vector<double> neighbor_hashes;
+                Eigen::SparseMatrix<float> blur_temp(nvertices,nvertices);
+                std::vector<float> neighbor_coords = unique_coords;
+                std::vector<float> neighbor_hashes;
                 std::vector<int> valid_coord;
                 std::vector<int> neighbor_idx;
                 std::vector<int> valid_idx;
@@ -498,7 +502,7 @@
             // std::cout << "neighbor_hashes:" << std::endl;
             // PrintVector(neighbor_hashes);
                 get_valid_idx(unique_hashes,neighbor_hashes,valid_coord,neighbor_idx);
-                // std::vector<double> ones_valid_coord(valid_coord.size(),1.0);
+                // std::vector<float> ones_valid_coord(valid_coord.size(),1.0);
                 std::cout <<i<<j<< "nvertices,valid_coord.size,neighbor_idx.size:"<< nvertices<<" "<<valid_coord.size()<<" "<<neighbor_idx.size() << std::endl;
                 csr_matrix(blur_temp, valid_coord, neighbor_idx);
             // std::cout << "ones_valid_coord:" << std::endl;
@@ -520,11 +524,11 @@
 
     void test_compute_factorization()
     {
-        // std::vector<double> coords_flat = generateRandomVector<double>(npixels*dim);
-        // Eigen::MatrixXd coords_flat = Eigen::MatrixXd::Random(npixels,5);
-        // coords_flat = 100.0*(coords_flat + Eigen::MatrixXd::Ones(npixels,5));
-        Eigen::MatrixXd coords_flat(npixels*dim,1);
-        std::vector<double> randV = generateRandomVector<double>(npixels*dim);
+        // std::vector<float> coords_flat = generateRandomVector<float>(npixels*dim);
+        // Eigen::MatrixXf coords_flat = Eigen::MatrixXf::Random(npixels,5);
+        // coords_flat = 100.0*(coords_flat + Eigen::MatrixXf::Ones(npixels,5));
+        Eigen::MatrixXf coords_flat(npixels*dim,1);
+        std::vector<float> randV = generateRandomVector<float>(npixels*dim);
         for (int i = 0; i < randV.size(); i++) {
             coords_flat(i,0) = randV[i];
         }

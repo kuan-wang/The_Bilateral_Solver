@@ -15,7 +15,7 @@
 
 
     void get_valid_idx(std::unordered_map<long long, int>& valid, Eigen::Matrix<long long, Eigen::Dynamic, 1>& candidates,
-                        Eigen::SparseMatrix<double>& blur_temp)
+                        Eigen::SparseMatrix<float>& blur_temp)
     {
 
         for (int i = 0; i < candidates.size(); i++)
@@ -27,8 +27,8 @@
         }
     }
 
-    void get_valid_idx(std::unordered_map<double, int>& valid, Eigen::VectorXd& candidates,
-                        Eigen::SparseMatrix<double>& blur_temp)
+    void get_valid_idx(std::unordered_map<float, int>& valid, Eigen::VectorXf& candidates,
+                        Eigen::SparseMatrix<float>& blur_temp)
     {
 
         for (int i = 0; i < candidates.size(); i++)
@@ -42,7 +42,7 @@
 
 
     void get_valid_idx(std::vector<long long>& valid, Eigen::Matrix<long long, Eigen::Dynamic, 1>& candidates,
-                        Eigen::SparseMatrix<double>& blur_temp)
+                        Eigen::SparseMatrix<float>& blur_temp)
     {
 
         for (int i = 0; i < candidates.size(); i++)
@@ -51,7 +51,7 @@
             int id = binarySearchRecursive<long long>(&valid[0],0,valid.size()-1,candidates(i));   //size()-1?
             if(id >= 0)
             {
-                triple_blur.push_back(Eigen::Triplet<double>(id, i, 1.0));
+                triple_blur.push_back(Eigen::Triplet<float>(id, i, 1.0));
                 // blur_temp.insert(id, i) = 1;
             }
         }
@@ -59,14 +59,14 @@
     }
 
 
-    void get_valid_idx(std::vector<double>& valid, Eigen::VectorXd& candidates,
-                        Eigen::SparseMatrix<double>& blur_temp)
+    void get_valid_idx(std::vector<float>& valid, Eigen::VectorXf& candidates,
+                        Eigen::SparseMatrix<float>& blur_temp)
     {
 
         for (int i = 0; i < candidates.size(); i++)
         {
 
-            int id = binarySearchRecursive<double>(&valid[0],0,valid.size()-1,candidates(i));   //size()-1?
+            int id = binarySearchRecursive<float>(&valid[0],0,valid.size()-1,candidates(i));   //size()-1?
             if(id >= 0)
             {
                 // std::cout << "(i,id) : (" << i <<","<< id <<")"<< std::endl;
@@ -78,14 +78,14 @@
     }
 
 
-    void get_valid_idx(std::vector<double>& valid, std::vector<double>& candidates,
+    void get_valid_idx(std::vector<float>& valid, std::vector<float>& candidates,
                         std::vector<int>& valid_idx, std::vector<int>& locs)
     {
         valid_idx.clear();
         locs.clear();
         for (int i = 0; i < candidates.size(); i++)
         {
-            int id = binarySearchRecursive<double>(&valid[0],0,valid.size(),candidates[i]);
+            int id = binarySearchRecursive<float>(&valid[0],0,valid.size(),candidates[i]);
             if(id >= 0)
             {
                 locs.push_back(id);
@@ -102,14 +102,14 @@
         std::cout << "/ntest_get_valid_idx/n" << std::endl;
 
 
-        std::vector<double> coords_flat = generateRandomVector<double>(npixels);
+        std::vector<float> coords_flat = generateRandomVector<float>(npixels);
         std::sort(coords_flat.begin(),coords_flat.end());
-        std::vector<double> neighbor_flat = generateRandomVector<double>(npixels);
+        std::vector<float> neighbor_flat = generateRandomVector<float>(npixels);
         // std::sort(neighbor_flat.begin(), neighbor_flat.end());
 
-        Eigen::SparseMatrix<double> blur_temp(npixels,npixels);
-        Eigen::VectorXd unique_hashes(npixels);
-        Eigen::VectorXd neighbor_hashes(npixels);
+        Eigen::SparseMatrix<float> blur_temp(npixels,npixels);
+        Eigen::VectorXf unique_hashes(npixels);
+        Eigen::VectorXf neighbor_hashes(npixels);
 
         for (int i = 0; i < npixels; i++) {
             unique_hashes(i) = coords_flat[i];
@@ -127,8 +127,8 @@
         std::cout << "blur_temp" << std::endl;
         std::cout << blur_temp << std::endl;
 
-        // std::vector<double> valid = generateRandomVector<double>(npixels);
-        // std::vector<double> candidates = generateRandomVector<double>(npixels);
+        // std::vector<float> valid = generateRandomVector<float>(npixels);
+        // std::vector<float> candidates = generateRandomVector<float>(npixels);
         // std::vector<int> valid_idx;
         // std::vector<int> locs;
         //

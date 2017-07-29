@@ -41,8 +41,8 @@ int main(int argc, char const *argv[]) {
 // using namespace Eigen;
 //
 //     int rows=10, cols = 10;
-//     Eigen::SparseMatrix<double> mat(rows,cols);         // 默认列优先
-//     Eigen::SparseMatrix<double> mat1(3,cols);         // 默认列优先
+//     Eigen::SparseMatrix<float> mat(rows,cols);         // 默认列优先
+//     Eigen::SparseMatrix<float> mat1(3,cols);         // 默认列优先
 //     // mat.reserve(VectorXi::Constant(cols,1)); //关键：为每一列保留6个非零元素空间
 //     for(int i=0; i<7; i++){ //遍历行
 //         for(int j=0;j<7; j++){
@@ -57,8 +57,8 @@ int main(int argc, char const *argv[]) {
 
     //
     // int n = 1000000;
-    // Eigen::SparseMatrix<double> test(n,n);
-    // std::vector<Eigen::Triplet<double> > triples;
+    // Eigen::SparseMatrix<float> test(n,n);
+    // std::vector<Eigen::Triplet<float> > triples;
     // std::unordered_map<int /* hash */, int /* vert id */> hashed_coords;
 	  // hashed_coords.reserve(n);
     // std::vector<int> v1(n);
@@ -83,7 +83,7 @@ int main(int argc, char const *argv[]) {
     // }
     // // for (int i = 0; i < n; i++) {
     //   // int id = binarySearchRecursive<int>(&v1[0],0,v1.size()-1,v2[i]);  //size()-1?
-    //     // triples.push_back(Eigen::Triplet<double>(it->second, i, double(i)));
+    //     // triples.push_back(Eigen::Triplet<float>(it->second, i, float(i)));
     // // }
 	  // std::chrono::steady_clock::time_point start_find = std::chrono::steady_clock::now();
 	  // // std::cout << "insert: " << std::chrono::duration_cast<std::chrono::milliseconds>(start_find - start_insert).count() << "ms" << std::endl;
@@ -98,13 +98,13 @@ int main(int argc, char const *argv[]) {
     // // for (int i = 0; i < n; i++) {
     // //     v1[i] = i;
     // //     v2[i] = i;
-    // //     // test.insert(v1[i],v2[i]) = double(i);
+    // //     // test.insert(v1[i],v2[i]) = float(i);
     // //     std::vector<int> v3(100,1);
     // // }
-    // // // std::vector<Eigen::Triplet<double> > triples(n);
+    // // // std::vector<Eigen::Triplet<float> > triples(n);
     // // for (int i = 0; i < n; i++) {
-    //     // triples[i] = (Eigen::Triplet<double>(i, i, double(i)));
-    //     // triples.push_back(Eigen::Triplet<double>(i, i, double(i)));
+    //     // triples[i] = (Eigen::Triplet<float>(i, i, float(i)));
+    //     // triples.push_back(Eigen::Triplet<float>(i, i, float(i)));
     // // }
 	  // // std::chrono::steady_clock::time_point end_triples = std::chrono::steady_clock::now();
 	  // // std::cout << "end triples: " << std::chrono::duration_cast<std::chrono::milliseconds>(end_triples - start_test).count() << "ms" << std::endl;
@@ -112,8 +112,8 @@ int main(int argc, char const *argv[]) {
     // // // std::cout << "triples.size:"<<triples.size() << '\n';
     // //
     // // for (int i = 0; i < n; i++) {
-    // //     test.coeffRef(i,i) = double(i);
-    // //     // test.insert(v1[i],v2[i]) = double(i);
+    // //     test.coeffRef(i,i) = float(i);
+    // //     // test.insert(v1[i],v2[i]) = float(i);
     // // }
     //
 	  // std::chrono::steady_clock::time_point end_test = std::chrono::steady_clock::now();

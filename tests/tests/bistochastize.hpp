@@ -20,10 +20,10 @@
 
     void bistochastize(int maxiter = 10)
     {
-        Eigen::VectorXd ones_npixels = Eigen::VectorXd::Ones(npixels);
-        Eigen::VectorXd n = Eigen::VectorXd::Ones(nvertices);
-        Eigen::VectorXd m(nvertices);
-        Eigen::VectorXd bluredn(nvertices);
+        Eigen::VectorXf ones_npixels = Eigen::VectorXf::Ones(npixels);
+        Eigen::VectorXf n = Eigen::VectorXf::Ones(nvertices);
+        Eigen::VectorXf m(nvertices);
+        Eigen::VectorXf bluredn(nvertices);
         Splat(ones_npixels,m);
 
         for (int i = 0; i < maxiter; i++) {
@@ -43,7 +43,7 @@
 
     void test_bistochastize()
     {
-        std::vector<double> coords_flat = generateRandomVector<double>(npixels*dim);
+        std::vector<float> coords_flat = generateRandomVector<float>(npixels*dim);
         compute_factorization(coords_flat);
 
         bistochastize();

@@ -6,17 +6,17 @@
 
 #include "testslib.hpp"
 
-    void diags(Eigen::VectorXd& v,Eigen::SparseMatrix<double>& m)
+    void diags(Eigen::VectorXf& v,Eigen::SparseMatrix<float>& m)
     {
-        m = Eigen::SparseMatrix<double>(v.size(),v.size());
+        m = Eigen::SparseMatrix<float>(v.size(),v.size());
         for (int i = 0; i < v.size(); i++) {
             m.insert(i,i) = v(i);
         }
     }
 
-    void diags(std::vector<double>& v,Eigen::SparseMatrix<double>& m)
+    void diags(std::vector<float>& v,Eigen::SparseMatrix<float>& m)
     {
-        m = Eigen::SparseMatrix<double>(v.size(),v.size());
+        m = Eigen::SparseMatrix<float>(v.size(),v.size());
         for (int i = 0; i < v.size(); i++) {
             m.insert(i,i) = v[i];
         }
@@ -24,8 +24,8 @@
 
     void test_diags()
     {
-        std::vector<double> v = generateRandomVector<double>(npixels);
-        Eigen::SparseMatrix<double> mat;
+        std::vector<float> v = generateRandomVector<float>(npixels);
+        Eigen::SparseMatrix<float> mat;
         diags(v, mat);
         std::cout << "v:" << std::endl;
         PrintVector(v);

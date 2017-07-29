@@ -23,29 +23,29 @@
         unique_hashes.clear();
         clock_t now;
         now = clock();
-        printf( "start input unordered_map : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        printf( "start input unordered_map : now is %f seconds\n\n", (float)(now) / CLOCKS_PER_SEC);
         int id = 0;
-        std::vector<Eigen::Triplet<double> > triple;
+        std::vector<Eigen::Triplet<float> > triple;
         std::vector<int> idx;
         for (int i = 0; i < hashed_coords.size(); i++) {
             // input.insert(hashed_coords(i));
             if(unique_hashes.find(hashed_coords(i)) == unique_hashes.end())
             {
                 unique_hashes[hashed_coords(i)] = id;
-                triple.push_back(Eigen::Triplet<double>(id, i, 1.0));
+                triple.push_back(Eigen::Triplet<float>(id, i, 1.0));
                 idx.push_back(i);
                 id++;
             }
             else
             {
-                triple.push_back(Eigen::Triplet<double>(unique_hashes[hashed_coords(i)], i, 1.0));
+                triple.push_back(Eigen::Triplet<float>(unique_hashes[hashed_coords(i)], i, 1.0));
             }
         }
         nvertices = unique_hashes.size();
 
 
         now = clock();
-        printf( "start resize unique_coords : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        printf( "start resize unique_coords : now is %f seconds\n\n", (float)(now) / CLOCKS_PER_SEC);
         unique_coords.resize(unique_hashes.size(),coords_flat.cols());
         for (int i = 0; i < idx.size(); i++) {
             unique_coords.row(i) = coords_flat.row(idx[i]);
@@ -53,44 +53,44 @@
 
 
         now = clock();
-        printf( "start construct S : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
-        S = Eigen::SparseMatrix<double>(nvertices,npixels);
+        printf( "start construct S : now is %f seconds\n\n", (float)(now) / CLOCKS_PER_SEC);
+        S = Eigen::SparseMatrix<float>(nvertices,npixels);
         S.setFromTriplets(triple.begin(), triple.end());
         now = clock();
-        printf( "end construct S : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        printf( "end construct S : now is %f seconds\n\n", (float)(now) / CLOCKS_PER_SEC);
 
     }
 
 
 
-    void unique(Eigen::MatrixXd& coords_flat, Eigen::MatrixXd& unique_coords,
-                Eigen::VectorXd& hashed_coords, std::vector<long long>& unique_hashes)
+    void unique(Eigen::MatrixXf& coords_flat, Eigen::MatrixXf& unique_coords,
+                Eigen::VectorXf& hashed_coords, std::vector<long long>& unique_hashes)
     {
         unique_hashes.clear();
-        std::set<double> input;
+        std::set<float> input;
         clock_t now;
         now = clock();
-        printf( "start input set : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        printf( "start input set : now is %f seconds\n\n", (float)(now) / CLOCKS_PER_SEC);
         for (int i = 0; i < hashed_coords.size(); i++) {
             input.insert(hashed_coords(i));
         }
 
         now = clock();
-        printf( "start resize unique_coords : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        printf( "start resize unique_coords : now is %f seconds\n\n", (float)(now) / CLOCKS_PER_SEC);
         unique_coords.resize(input.size(),coords_flat.cols());
         nvertices = input.size();
         unique_hashes.resize(input.size());
-        S = Eigen::SparseMatrix<double>(nvertices,npixels);
+        S = Eigen::SparseMatrix<float>(nvertices,npixels);
 
         now = clock();
-        printf( "start std::copy : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        printf( "start std::copy : now is %f seconds\n\n", (float)(now) / CLOCKS_PER_SEC);
         std::copy(input.begin(),input.end(),unique_hashes.begin());
 
         now = clock();
-        printf( "start construct S : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        printf( "start construct S : now is %f seconds\n\n", (float)(now) / CLOCKS_PER_SEC);
         for (int i = 0; i < hashed_coords.size(); i++) {
             int id = binarySearchRecursive<long long>(&unique_hashes[0],0,unique_hashes.size()-1,hashed_coords(i));  //size()-1?
-            // std::set<double>::iterator got = unique_hashes.find (hashed_coords(i));
+            // std::set<float>::iterator got = unique_hashes.find (hashed_coords(i));
             // if(got != unique_hashes.end())
             if(id >= 0)
             {
@@ -100,7 +100,7 @@
             }
         }
         now = clock();
-        printf( "end construct S : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        printf( "end construct S : now is %f seconds\n\n", (float)(now) / CLOCKS_PER_SEC);
     }
 
 
@@ -114,39 +114,39 @@
         std::set<long long> input;
         clock_t now;
         now = clock();
-        printf( "start input set : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        printf( "start input set : now is %f seconds\n\n", (float)(now) / CLOCKS_PER_SEC);
         for (int i = 0; i < hashed_coords.size(); i++) {
             input.insert(hashed_coords(i));
         }
 
         now = clock();
-        printf( "start resize unique_coords : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        printf( "start resize unique_coords : now is %f seconds\n\n", (float)(now) / CLOCKS_PER_SEC);
         unique_coords.resize(input.size(),coords_flat.cols());
         nvertices = input.size();
         unique_hashes.resize(input.size());
-        S = Eigen::SparseMatrix<double>(nvertices,npixels);
+        S = Eigen::SparseMatrix<float>(nvertices,npixels);
 
         now = clock();
-        printf( "start std::copy : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        printf( "start std::copy : now is %f seconds\n\n", (float)(now) / CLOCKS_PER_SEC);
         std::copy(input.begin(),input.end(),unique_hashes.begin());
 
         now = clock();
-        printf( "start construct S : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        printf( "start construct S : now is %f seconds\n\n", (float)(now) / CLOCKS_PER_SEC);
         for (int i = 0; i < hashed_coords.size(); i++) {
             int id = binarySearchRecursive<long long>(&unique_hashes[0],0,unique_hashes.size()-1,hashed_coords(i));  //size()-1?
-            // std::set<double>::iterator got = unique_hashes.find (hashed_coords(i));
+            // std::set<float>::iterator got = unique_hashes.find (hashed_coords(i));
             // if(got != unique_hashes.end())
             if(id >= 0)
             {
                 S.insert(id, i) = 1.0;
-                // triple_S.push_back(Eigen::Triplet<double>(id, i, 1.0));
+                // triple_S.push_back(Eigen::Triplet<float>(id, i, 1.0));
                 unique_coords.row(id) = coords_flat.row(i);
                 // std::cout << "(id,i) : (" << id <<","<< i <<")"<< std::endl;
             }
         }
         // S.setFromTriplets(triple_S.begin(), triple_S.end());
         now = clock();
-        printf( "end construct S : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        printf( "end construct S : now is %f seconds\n\n", (float)(now) / CLOCKS_PER_SEC);
     }
 
 
@@ -159,27 +159,27 @@
         std::set<long long> input;
         clock_t now;
         now = clock();
-        printf( "start input set : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        printf( "start input set : now is %f seconds\n\n", (float)(now) / CLOCKS_PER_SEC);
         for (int i = 0; i < hashed_coords.size(); i++) {
             input.insert(hashed_coords(i));
         }
 
         now = clock();
-        printf( "start resize unique_coords : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        printf( "start resize unique_coords : now is %f seconds\n\n", (float)(now) / CLOCKS_PER_SEC);
         unique_coords.resize(input.size(),coords_flat.cols());
         nvertices = input.size();
         unique_hashes.resize(input.size());
-        S = Eigen::SparseMatrix<double>(nvertices,npixels);
+        S = Eigen::SparseMatrix<float>(nvertices,npixels);
 
         now = clock();
-        printf( "start std::copy : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        printf( "start std::copy : now is %f seconds\n\n", (float)(now) / CLOCKS_PER_SEC);
         std::copy(input.begin(),input.end(),unique_hashes.begin());
 
         now = clock();
-        printf( "start construct S : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        printf( "start construct S : now is %f seconds\n\n", (float)(now) / CLOCKS_PER_SEC);
         for (int i = 0; i < hashed_coords.size(); i++) {
             int id = binarySearchRecursive<long long>(&unique_hashes[0],0,unique_hashes.size()-1,hashed_coords(i));  //size()-1?
-            // std::set<double>::iterator got = unique_hashes.find (hashed_coords(i));
+            // std::set<float>::iterator got = unique_hashes.find (hashed_coords(i));
             // if(got != unique_hashes.end())
             if(id >= 0)
             {
@@ -189,37 +189,37 @@
             }
         }
         now = clock();
-        printf( "end construct S : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        printf( "end construct S : now is %f seconds\n\n", (float)(now) / CLOCKS_PER_SEC);
     }
 
-    void unique(Eigen::MatrixXd& coords_flat, Eigen::MatrixXd& unique_coords,
-                Eigen::VectorXd& hashed_coords, std::vector<double>& unique_hashes)
+    void unique(Eigen::MatrixXf& coords_flat, Eigen::MatrixXf& unique_coords,
+                Eigen::VectorXf& hashed_coords, std::vector<float>& unique_hashes)
     {
         unique_hashes.clear();
-        std::set<double> input;
+        std::set<float> input;
         clock_t now;
         now = clock();
-        printf( "start input set : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        printf( "start input set : now is %f seconds\n\n", (float)(now) / CLOCKS_PER_SEC);
         for (int i = 0; i < hashed_coords.size(); i++) {
             input.insert(hashed_coords(i));
         }
 
         now = clock();
-        printf( "start resize unique_coords : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        printf( "start resize unique_coords : now is %f seconds\n\n", (float)(now) / CLOCKS_PER_SEC);
         unique_coords.resize(input.size(),coords_flat.cols());
         nvertices = input.size();
         unique_hashes.resize(input.size());
-        S = Eigen::SparseMatrix<double>(nvertices,npixels);
+        S = Eigen::SparseMatrix<float>(nvertices,npixels);
 
         now = clock();
-        printf( "start std::copy : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        printf( "start std::copy : now is %f seconds\n\n", (float)(now) / CLOCKS_PER_SEC);
         std::copy(input.begin(),input.end(),unique_hashes.begin());
 
         now = clock();
-        printf( "start construct S : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        printf( "start construct S : now is %f seconds\n\n", (float)(now) / CLOCKS_PER_SEC);
         for (int i = 0; i < hashed_coords.size(); i++) {
-            int id = binarySearchRecursive<double>(&unique_hashes[0],0,unique_hashes.size()-1,hashed_coords(i));  //size()-1?
-            // std::set<double>::iterator got = unique_hashes.find (hashed_coords(i));
+            int id = binarySearchRecursive<float>(&unique_hashes[0],0,unique_hashes.size()-1,hashed_coords(i));  //size()-1?
+            // std::set<float>::iterator got = unique_hashes.find (hashed_coords(i));
             // if(got != unique_hashes.end())
             if(id >= 0)
             {
@@ -229,11 +229,11 @@
             }
         }
         now = clock();
-        printf( "end construct S : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        printf( "end construct S : now is %f seconds\n\n", (float)(now) / CLOCKS_PER_SEC);
     }
 
 
-    void unique(std::vector<double>& hashed_coords, std::unordered_set<double>& unique_hashes,
+    void unique(std::vector<float>& hashed_coords, std::unordered_set<float>& unique_hashes,
                 std::vector<int>& unique_idx, std::vector<int>& idx)
     {
         unique_idx.clear();
@@ -251,7 +251,7 @@
         int count = 0;
         for (int i = 0; i < hashed_coords.size(); i++) {
             // int id = binarySearchRecursive(&unique_hashes[0],0,input.size(),hashed_coords[i]);
-            std::unordered_set<double>::iterator got = unique_hashes.find (hashed_coords[i]);
+            std::unordered_set<float>::iterator got = unique_hashes.find (hashed_coords[i]);
             if(got != unique_hashes.end())
             {
                 int id = std::distance(unique_hashes.begin(), got);
@@ -264,7 +264,7 @@
 
     }
 
-    void unique(std::vector<double>& hashed_coords, std::vector<double>& unique_hashes,
+    void unique(std::vector<float>& hashed_coords, std::vector<float>& unique_hashes,
                 std::vector<int>& unique_idx,std::vector<int>& idx)
     {
 
@@ -273,7 +273,7 @@
         unique_hashes.clear();
 
 
-        std::set<double> input;
+        std::set<float> input;
         std::cout << "for 1" << std::endl;
         std::cout << "hashed_coords size" <<hashed_coords.size()<< std::endl;
         for (int i = 0; i < hashed_coords.size(); i++) {
@@ -290,10 +290,10 @@
         std::cout << "for 2" << std::endl;
         clock_t now;
         now = clock();
-        printf( "start test for 2 : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        printf( "start test for 2 : now is %f seconds\n\n", (float)(now) / CLOCKS_PER_SEC);
         int count = 0;
         for (int i = 0; i < hashed_coords.size(); i++) {
-            int id = binarySearchRecursive<double>(&unique_hashes[0],0,input.size(),hashed_coords[i]);
+            int id = binarySearchRecursive<float>(&unique_hashes[0],0,input.size(),hashed_coords[i]);
             if(id >= 0)
             {
                 // idx.push_back(id);
@@ -302,14 +302,14 @@
             }
         }
         now = clock();
-        printf( "end test for 2 : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        printf( "end test for 2 : now is %f seconds\n\n", (float)(now) / CLOCKS_PER_SEC);
         std::cout << "for 2 end" << std::endl;
 
     }
 
 
-    // void unique(std::vector<double>& hashed_coords, std::vector<double>& unique_hashes,
-    //             std::vector<double>& coords)
+    // void unique(std::vector<float>& hashed_coords, std::vector<float>& unique_hashes,
+    //             std::vector<float>& coords)
     // {
     //
     //     unique_idx.clear();
@@ -317,7 +317,7 @@
     //     unique_hashes.clear();
     //
     //
-    //     std::set<double> input;
+    //     std::set<float> input;
     //     std::cout << "for 1" << std::endl;
     //     std::cout << "hashed_coords size" <<hashed_coords.size()<< std::endl;
     //     for (int i = 0; i < hashed_coords.size(); i++) {
@@ -350,10 +350,10 @@
         std::cout << "/ntest_unique/n" << std::endl;
 
 
-        std::vector<double> hashed_coords = generateRandomVector<double>(npixels);
-        // std::vector<double> hashed_coords(npixels,1.0);
-        std::vector<double> unique_hashes;
-        // std::unordered_set<double> unique_hashes;
+        std::vector<float> hashed_coords = generateRandomVector<float>(npixels);
+        // std::vector<float> hashed_coords(npixels,1.0);
+        std::vector<float> unique_hashes;
+        // std::unordered_set<float> unique_hashes;
         std::vector<int> unique_idx;
         std::vector<int> idx;
         unique(hashed_coords, unique_hashes, unique_idx, idx);

@@ -67,19 +67,19 @@ static int nvertices = 10;
 static int dim = 5;
 static int pd = 5;
 static int vd = 4;
-static std::vector<Eigen::SparseMatrix<double> > blurs;
-static std::vector<Eigen::Triplet<double> > triple_blur(100000*10);
-static std::vector<Eigen::Triplet<double> > triple_S(1000000);
-static Eigen::SparseMatrix<double> blurs_test;
-static Eigen::SparseMatrix<double> S;
-static Eigen::SparseMatrix<double> Dn;
-static Eigen::SparseMatrix<double> Dm;
+static std::vector<Eigen::SparseMatrix<float> > blurs;
+static std::vector<Eigen::Triplet<float> > triple_blur(100000*10);
+static std::vector<Eigen::Triplet<float> > triple_S(1000000);
+static Eigen::SparseMatrix<float> blurs_test;
+static Eigen::SparseMatrix<float> S;
+static Eigen::SparseMatrix<float> Dn;
+static Eigen::SparseMatrix<float> Dm;
 
     struct grid_params
     {
-        double spatialSigma;
-        double lumaSigma;
-        double chromaSigma;
+        float spatialSigma;
+        float lumaSigma;
+        float chromaSigma;
         grid_params()
         {
             spatialSigma = 8.0;
@@ -90,9 +90,9 @@ static Eigen::SparseMatrix<double> Dm;
 
     struct bs_params
     {
-        double lam;
-        double A_diag_min;
-        double cg_tol;
+        float lam;
+        float A_diag_min;
+        float cg_tol;
         int cg_maxiter;
         bs_params()
         {

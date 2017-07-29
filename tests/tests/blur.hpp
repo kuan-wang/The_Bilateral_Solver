@@ -12,7 +12,7 @@
 #include "factorization.hpp"
 
 
-    void Blur(Eigen::VectorXd& x, Eigen::VectorXd& result)
+    void Blur(Eigen::VectorXf& x, Eigen::VectorXf& result)
     {
         if(x.size() != nvertices)
         {
@@ -32,7 +32,7 @@
 
 
 
-    void Blur(std::vector<double>& x, std::vector<double>& result)
+    void Blur(std::vector<float>& x, std::vector<float>& result)
     {
         if(x.size() != nvertices)
         {
@@ -45,22 +45,22 @@
             result[i] = 2 * dim * x[i];
         }
         for (int i = 0; i < dim; i++) {
-            Eigen::SparseVector<double> v(x.size());
+            Eigen::SparseVector<float> v(x.size());
             for (int j = 0; j < x.size(); j++)
             {
                 v.coeffRef(j) = x[j];
             }
-            Eigen::SparseVector<double> blured(nvertices);
+            Eigen::SparseVector<float> blured(nvertices);
             blured = blurs[i] * v;
 
-            for(Eigen::SparseVector<double>::InnerIterator it(blured); it; ++it)
+            for(Eigen::SparseVector<float>::InnerIterator it(blured); it; ++it)
             {
                 result[it.index()] += it.value();
             }
         }
     }
 
-    void Blur(Eigen::SparseMatrix<double>& x, Eigen::SparseMatrix<double>& result)
+    void Blur(Eigen::SparseMatrix<float>& x, Eigen::SparseMatrix<float>& result)
     {
         if(x.rows() != nvertices || x.cols() != nvertices)
         {
@@ -79,24 +79,24 @@
 
     void test_blur()
     {
-        std::vector<double> coords_flat = generateRandomVector<double>(npixels*dim);
+        std::vector<float> coords_flat = generateRandomVector<float>(npixels*dim);
         compute_factorization(coords_flat);
 
-        std::vector<double> onesx(npixels,1);
-        std::vector<double> testv(npixels,-1);
-        std::vector<double> onesv(npixels,-1);
-        std::vector<double> testx = generateRandomVector<double>(npixels);
-        std::vector<double> spalt_result;
-        std::vector<double> blur_result;
-        std::vector<double> slice_result(npixels, -1);
+        std::vector<float> onesx(npixels,1);
+        std::vector<float> testv(npixels,-1);
+        std::vector<float> onesv(npixels,-1);
+        std::vector<float> testx = generateRandomVector<float>(npixels);
+        std::vector<float> spalt_result;
+        std::vector<float> blur_result;
+        std::vector<float> slice_result(npixels, -1);
 
-        std::vector<double> spalt_onesresult;
-        std::vector<double> blur_onesresult;
-        std::vector<double> slice_onesresult(npixels, -1);
+        std::vector<float> spalt_onesresult;
+        std::vector<float> blur_onesresult;
+        std::vector<float> slice_onesresult(npixels, -1);
 
-        Eigen::VectorXd VectorXd_result;
-        Eigen::SparseVector<double> SparseVector_result;
-        Eigen::SparseVector<double> SparseVector_onesresult;
+        Eigen::VectorXf VectorXd_result;
+        Eigen::SparseVector<float> SparseVector_result;
+        Eigen::SparseVector<float> SparseVector_onesresult;
 
         Splat(testx, spalt_result);
         Splat(onesx, spalt_onesresult);

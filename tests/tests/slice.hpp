@@ -15,23 +15,23 @@
 
 
 
-    void Slice(std::vector<double>& y, std::vector<double>& result) {
-        Eigen::SparseVector<double> v(y.size());
+    void Slice(std::vector<float>& y, std::vector<float>& result) {
+        Eigen::SparseVector<float> v(y.size());
         for (int i = 0; i < y.size(); i++) {
             v.coeffRef(i) = y[i];
         }
-        Eigen::SparseVector<double> vres(nvertices);
+        Eigen::SparseVector<float> vres(nvertices);
         vres = S.transpose()*v;
 
-        for(Eigen::SparseVector<double>::InnerIterator it(vres); it; ++it)
+        for(Eigen::SparseVector<float>::InnerIterator it(vres); it; ++it)
         {
             result[it.index()] = it.value();
         }
     }
 
 
-    void Slice(Eigen::VectorXd& y, std::vector<double>& result) {
-        Eigen::VectorXd vres(nvertices);
+    void Slice(Eigen::VectorXf& y, std::vector<float>& result) {
+        Eigen::VectorXf vres(nvertices);
         vres = S.transpose()*y;
 
         for(int i = 0; i < vres.size();i++)
@@ -40,8 +40,8 @@
         }
     }
 
-    void Slice(Eigen::SparseVector<double>& y, std::vector<double>& result) {
-        Eigen::SparseVector<double> vres(nvertices);
+    void Slice(Eigen::SparseVector<float>& y, std::vector<float>& result) {
+        Eigen::SparseVector<float> vres(nvertices);
         vres = S.transpose()*y;
 
         for(int i = 0; i < vres.size();i++)
@@ -50,8 +50,8 @@
         }
     }
 
-    void Slice(Eigen::VectorXd& y,
-               Eigen::MatrixXd& result)
+    void Slice(Eigen::VectorXf& y,
+               Eigen::MatrixXf& result)
     {
         result = S.transpose()*y;
     }
@@ -62,17 +62,17 @@
 
     void test_slice()
     {
-        std::vector<double> coords_flat = generateRandomVector<double>(npixels*dim);
+        std::vector<float> coords_flat = generateRandomVector<float>(npixels*dim);
         compute_factorization(coords_flat);
 
-        std::vector<double> onesx(npixels,1);
-        std::vector<double> testv(npixels,-1);
-        std::vector<double> onesv(npixels,-1);
-        std::vector<double> testx = generateRandomVector<double>(npixels);
-        std::vector<double> result;
-        Eigen::VectorXd VectorXd_result;
-        Eigen::SparseVector<double> SparseVector_result;
-        Eigen::SparseVector<double> SparseVector_onesresult;
+        std::vector<float> onesx(npixels,1);
+        std::vector<float> testv(npixels,-1);
+        std::vector<float> onesv(npixels,-1);
+        std::vector<float> testx = generateRandomVector<float>(npixels);
+        std::vector<float> result;
+        Eigen::VectorXf VectorXd_result;
+        Eigen::SparseVector<float> SparseVector_result;
+        Eigen::SparseVector<float> SparseVector_onesresult;
 
         Splat(testx, VectorXd_result);
         Splat(onesx, SparseVector_onesresult);

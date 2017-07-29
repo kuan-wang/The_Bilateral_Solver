@@ -27,30 +27,30 @@
 #include <Eigen/Sparse>
 
 
-    void solve(Eigen::MatrixXd& x,
-               Eigen::MatrixXd& w,
-               Eigen::MatrixXd& out)
+    void solve(Eigen::MatrixXf& x,
+               Eigen::MatrixXf& w,
+               Eigen::MatrixXf& out)
     {
 
         clock_t now;
 
-        // Eigen::SparseMatrix<double> bluredDn(nvertices,nvertices);
+        // Eigen::SparseMatrix<float> bluredDn(nvertices,nvertices);
         // Blur(Dn,bluredDn);
 	    // std::cout << "start Blur(Dn,bluredDn)" << std::endl;
-        // Eigen::SparseMatrix<double> A_smooth = Dm - Dn * (blurs_test*Dn);
+        // Eigen::SparseMatrix<float> A_smooth = Dm - Dn * (blurs_test*Dn);
         now = clock();
-        printf( "A_smooth : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        printf( "A_smooth : now is %f seconds\n\n", (float)(now) / CLOCKS_PER_SEC);
 
 
 
-        // SparseMatrix<double> A_diag(nvertices);
-        Eigen::SparseMatrix<double> M(nvertices,nvertices);
-        Eigen::SparseMatrix<double> A_data(nvertices,nvertices);
-        Eigen::SparseMatrix<double> A(nvertices,nvertices);
-        Eigen::VectorXd b(nvertices);
-        Eigen::VectorXd y(nvertices);
-        Eigen::VectorXd w_splat(nvertices);
-        Eigen::VectorXd xw(x.size());
+        // SparseMatrix<float> A_diag(nvertices);
+        Eigen::SparseMatrix<float> M(nvertices,nvertices);
+        Eigen::SparseMatrix<float> A_data(nvertices,nvertices);
+        Eigen::SparseMatrix<float> A(nvertices,nvertices);
+        Eigen::VectorXf b(nvertices);
+        Eigen::VectorXf y(nvertices);
+        Eigen::VectorXf w_splat(nvertices);
+        Eigen::VectorXf xw(x.size());
 
 
 	    // std::cout << "start Splat(w,w_splat)" << std::endl;
@@ -59,18 +59,18 @@
         A = bs_param.lam * (Dm - Dn * (blurs_test*Dn)) + A_data ;
         // A = bs_param.lam * A_smooth + A_data ;
         now = clock();
-        printf( "A : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        printf( "A : now is %f seconds\n\n", (float)(now) / CLOCKS_PER_SEC);
 
         xw = x.array() * w.array();
 
         Splat(xw,b);
         now = clock();
-        printf( "b : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        printf( "b : now is %f seconds\n\n", (float)(now) / CLOCKS_PER_SEC);
 
 
         std::cout << "solve" << std::endl;
         // fill A and b
-        Eigen::ConjugateGradient<Eigen::SparseMatrix<double>, Eigen::Lower|Eigen::Upper> cg;
+        Eigen::ConjugateGradient<Eigen::SparseMatrix<float>, Eigen::Lower|Eigen::Upper> cg;
         cg.compute(A);
         cg.setMaxIterations(bs_param.cg_maxiter);
         cg.setTolerance(bs_param.cg_tol);
@@ -84,12 +84,12 @@
         //     if(cg.error()  < bs_param.cg_tol) break;
         // }
         now = clock();
-        printf( "solved : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        printf( "solved : now is %f seconds\n\n", (float)(now) / CLOCKS_PER_SEC);
 
         Slice(y,out);
         // std::cout << out << std::endl;
         now = clock();
-        printf( "Sliced : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        printf( "Sliced : now is %f seconds\n\n", (float)(now) / CLOCKS_PER_SEC);
 
 
 
@@ -105,7 +105,7 @@
 
         clock_t now;
         now = clock();
-        printf( "start : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        printf( "start : now is %f seconds\n\n", (float)(now) / CLOCKS_PER_SEC);
 
         // cv::Mat reference = cv::imread("reference.png",-1);
         // cv::Mat im1 = cv::imread("reference.png",-1);
@@ -146,22 +146,22 @@
         // std::cout << reference << std::endl;
 
 
-        double spatialSigma = double(atof(args[4]));
-        double lumaSigma = double(atof(args[5]));
-        double chromaSigma = double(atof(args[6]));
+        float spatialSigma = float(atof(args[4]));
+        float lumaSigma = float(atof(args[5]));
+        float chromaSigma = float(atof(args[6]));
 
         npixels = reference.cols*reference.rows;
 
         cv::Mat r(npixels, 5, CV_8U);
         cv::Mat t(npixels, 1, CV_64F);
         cv::Mat c(npixels, 1, CV_64F);
-        // std::vector<double> re(reference.cols*reference.rows*5);
-        // std::vector<double> ta(reference.cols*reference.rows);
-        // std::vector<double> co(reference.cols*reference.rows);
+        // std::vector<float> re(reference.cols*reference.rows*5);
+        // std::vector<float> ta(reference.cols*reference.rows);
+        // std::vector<float> co(reference.cols*reference.rows);
         int idx = 0;
     	std::cout << "start filling positions and values" << std::endl;
         now = clock();
-        printf( "fill positions and values : now is %f seconds\n", (double)(now) / CLOCKS_PER_SEC);
+        printf( "fill positions and values : now is %f seconds\n", (float)(now) / CLOCKS_PER_SEC);
         for (int y = 0; y < reference.cols; y++) {
             for (int x = 0; x < reference.rows; x++) {
                 uchar *datar = r.ptr<uchar>(idx);
@@ -183,19 +183,19 @@
         idx = 0;
         for (int y = 0; y < reference.cols; y++) {
             for (int x = 0; x < reference.rows; x++) {
-                double *datac = c.ptr<double>(idx);
+                float *datac = c.ptr<float>(idx);
                 // datac[0] = 1.0;
-                datac[0] = double(confidence.at<ushort>(x,y))/65535.0;
+                datac[0] = float(confidence.at<ushort>(x,y))/65535.0;
                 if(datac[0] != 0) datac[0] = 0.1/datac[0];
-                // datac[0] = confidence.at<double>(x,y)[0];
+                // datac[0] = confidence.at<float>(x,y)[0];
                 idx++;
             }
         }
         idx = 0;
         for (int y = 0; y < reference.cols; y++) {
             for (int x = 0; x < reference.rows; x++) {
-                double *datat = t.ptr<double>(idx);
-                datat[0] = double(target.at<ushort>(x,y))/65535.0;
+                float *datat = t.ptr<float>(idx);
+                datat[0] = float(target.at<ushort>(x,y))/65535.0;
                 // datat[0] = target.at<cv::Vec3b>(x,y)[0];
                 idx++;
             }
@@ -204,8 +204,8 @@
         std::cout << "cv2eigen" << std::endl;
         Eigen::Matrix<uchar, Eigen::Dynamic, Eigen::Dynamic> ref_temp;
         Eigen::Matrix<long long, Eigen::Dynamic, Eigen::Dynamic> ref;
-        Eigen::MatrixXd tar;
-        Eigen::MatrixXd con;
+        Eigen::MatrixXf tar;
+        Eigen::MatrixXf con;
 
         cv::cv2eigen(r,ref_temp);
         cv::cv2eigen(t,tar);
@@ -216,7 +216,7 @@
 
     	// std::cout << "start filling positions and values" << std::endl;
         // now = clock();
-        // printf( "fill positions and values : now is %f seconds\n", (double)(now) / CLOCKS_PER_SEC);
+        // printf( "fill positions and values : now is %f seconds\n", (float)(now) / CLOCKS_PER_SEC);
         // idx = 0;
         // for (int y = 0; y < reference.cols; y++) {
         //     for (int x = 0; x < reference.rows; x++) {
@@ -244,27 +244,27 @@
 
 
         now = clock();
-        printf( "compute_factorization : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        printf( "compute_factorization : now is %f seconds\n\n", (float)(now) / CLOCKS_PER_SEC);
         compute_factorization(ref);
         // compute_factorization(re);
         // std::cout << ref << std::endl;
 
         now = clock();
-        printf( "bistochastize : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        printf( "bistochastize : now is %f seconds\n\n", (float)(now) / CLOCKS_PER_SEC);
         bistochastize();
 
         now = clock();
-        printf( "solve :now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        printf( "solve :now is %f seconds\n\n", (float)(now) / CLOCKS_PER_SEC);
         solve(tar,con,tar);
         now = clock();
-        printf( "solved :now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        printf( "solved :now is %f seconds\n\n", (float)(now) / CLOCKS_PER_SEC);
 
         // Divide through by the homogeneous coordinate and store the
         // result back to the image
         idx = 0;
         for (int y = 0; y < reference.cols; y++) {
             for (int x = 0; x < reference.rows; x++) {
-                // double w = values[idx*4+3];
+                // float w = values[idx*4+3];
                 target.at<ushort>(x,y) = tar(idx)*65535.0;
                 // target.at<cv::uchar>(x,y) = values[idx*4+1]/w;
                 // target.at<cv::uchar>(x,y) = values[idx*4+2]/w;
@@ -280,7 +280,7 @@
 
 
         now = clock();
-        printf( "finished :now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        printf( "finished :now is %f seconds\n\n", (float)(now) / CLOCKS_PER_SEC);
     	cv::imshow("input",im1);
     	cv::imshow("output",target);
     	cv::waitKey(0);

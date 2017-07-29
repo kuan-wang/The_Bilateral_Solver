@@ -21,7 +21,7 @@
 
 
 
-    void filt(std::vector<double>& x, std::vector<double>& w,std::vector<double>& out)
+    void filt(std::vector<float>& x, std::vector<float>& w,std::vector<float>& out)
     {
 
         for (int i = 0; i < npixels; i++)
@@ -29,18 +29,18 @@
             x[i] = x[i] * w[i];
         }
 
-        std::vector<double> spalt_result;
-        std::vector<double> blur_result;
-        std::vector<double> slice_result(npixels, -1);
+        std::vector<float> spalt_result;
+        std::vector<float> blur_result;
+        std::vector<float> slice_result(npixels, -1);
 
-        std::vector<double> spalt_wresult;
-        std::vector<double> blur_wresult;
-        std::vector<double> slice_wresult(npixels, -1);
+        std::vector<float> spalt_wresult;
+        std::vector<float> blur_wresult;
+        std::vector<float> slice_wresult(npixels, -1);
 
-        std::vector<double> onesx(npixels,1);
-        std::vector<double> spalt_onesresult;
-        std::vector<double> blur_onesresult;
-        std::vector<double> slice_onesresult(npixels, -1);
+        std::vector<float> onesx(npixels,1);
+        std::vector<float> spalt_onesresult;
+        std::vector<float> blur_onesresult;
+        std::vector<float> slice_onesresult(npixels, -1);
 
 
         Splat(x, spalt_result);
@@ -84,7 +84,7 @@
 
         clock_t now;
         now = clock();
-        printf( "start : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        printf( "start : now is %f seconds\n\n", (float)(now) / CLOCKS_PER_SEC);
 
         cv::Mat reference = cv::imread("reference.png");
         cv::Mat im1 = cv::imread("reference.png");
@@ -99,20 +99,20 @@
         std::cout << "reference:" << reference.cols<<"x"<< reference.rows<< std::endl;
 
 
-        double spatialSigma = 32.0;
-        double lumaSigma = 16.0;
-        double chromaSigma = 16.0;
+        float spatialSigma = 32.0;
+        float lumaSigma = 16.0;
+        float chromaSigma = 16.0;
 
         npixels = reference.cols*reference.rows;
 
-        std::vector<double> ref(reference.cols*reference.rows*5);
-        std::vector<double> tar(reference.cols*reference.rows);
-        std::vector<double> con(reference.cols*reference.rows);
+        std::vector<float> ref(reference.cols*reference.rows*5);
+        std::vector<float> tar(reference.cols*reference.rows);
+        std::vector<float> con(reference.cols*reference.rows);
         int idx = 0;
 
     	std::cout << "start filling positions and values" << std::endl;
         now = clock();
-        printf( "filling : now is %f seconds\n", (double)(now) / CLOCKS_PER_SEC);
+        printf( "filling : now is %f seconds\n", (float)(now) / CLOCKS_PER_SEC);
         for (int y = 0; y < reference.cols; y++) {
             for (int x = 0; x < reference.rows; x++) {
                 ref[idx*5+0] = ceilf(x/spatialSigma);
@@ -135,17 +135,17 @@
         compute_factorization(ref);
 
         now = clock();
-        printf( "filt : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        printf( "filt : now is %f seconds\n\n", (float)(now) / CLOCKS_PER_SEC);
         filt(tar,con,tar);
         now = clock();
-        printf( "filted : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        printf( "filted : now is %f seconds\n\n", (float)(now) / CLOCKS_PER_SEC);
 
         // Divide through by the homogeneous coordinate and store the
         // result back to the image
         idx = 0;
         for (int y = 0; y < reference.cols; y++) {
             for (int x = 0; x < reference.rows; x++) {
-                // double w = values[idx*4+3];
+                // float w = values[idx*4+3];
                 target.at<cv::Vec3b>(x,y)[0] = tar[idx];
                 // target.at<cv::uchar>(x,y) = values[idx*4+1]/w;
                 // target.at<cv::uchar>(x,y) = values[idx*4+2]/w;
@@ -161,7 +161,7 @@
 
 
         now = clock();
-        printf( "finished : now is %f seconds\n\n", (double)(now) / CLOCKS_PER_SEC);
+        printf( "finished : now is %f seconds\n\n", (float)(now) / CLOCKS_PER_SEC);
     	cv::imshow("input",im1);
     	cv::imshow("output",target);
     	cv::waitKey(0);
