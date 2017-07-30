@@ -7,16 +7,8 @@
 #include <iostream>
 #include <chrono>
 
-#include "blur.hpp"
-#include "unique.hpp"
-#include "splat.hpp"
-#include "slice.hpp"
 #include "testslib.hpp"
-#include "csrmatrix.hpp"
-#include "hashcoords.hpp"
-#include "bistochastize.hpp"
-#include "getvalididx.hpp"
-#include "factorization.hpp"
+// #include "factorization.hpp"
 
 #include<opencv2/core/core.hpp>
 #include<opencv2/core/eigen.hpp>
@@ -32,6 +24,156 @@
 
 using namespace cv;
 
+
+
+    void compute_factorization(cv::Mat& reference_bgr, float sigma_spatial, float sigma_luma, float sigma_chroma)
+    {
+
+	      cv::Mat reference_yuv;
+	      cv::cvtColor(reference_bgr, reference_yuv, CV_BGR2YUV);
+
+	      std::chrono::steady_clock::time_point begin_grid_construction = std::chrono::steady_clock::now();
+
+	      const int w = reference_yuv.cols;
+	      const int h = reference_yuv.rows;
+        npixels = w*h;
+	      std::int64_t hash_vec[5];
+	      for (int i = 0; i < 5; ++i)
+		        hash_vec[i] = static_cast<std::int64_t>(std::pow(255, i));
+
+	      std::unordered_map<std::int64_t /* hash */, int /* vert id */> hashed_coords;
+	      hashed_coords.reserve(w*h);
+
+	      const unsigned char* pref = (const unsigned char*)reference_yuv.data;
+	      int vert_idx = 0;
+	      int pix_idx = 0;
+
+
+      	// loop through each pixel of the image
+        // Eigen::SparseMatrix<float, Eigen::ColMajor> S_temp(npixels,npixels);
+        // S_temp.reserve(Eigen::VectorXi::Constant(npixels,1));
+        std::vector<int> valid_idx(npixels);
+      	for (int y = 0; y < h; ++y)
+      	{
+      		for (int x = 0; x < w; ++x)
+      		{
+      			std::int64_t coord[5];
+      			coord[0] = int(x / sigma_spatial);
+      			coord[1] = int(y / sigma_spatial);
+      			coord[2] = int(pref[0] / sigma_luma);
+      			coord[3] = int(pref[1] / sigma_chroma);
+      			coord[4] = int(pref[2] / sigma_chroma);
+
+      			// convert the coordinate to a hash value
+      			std::int64_t hash_coord = 0;
+      			for (int i = 0; i < 5; ++i)
+      				  hash_coord += coord[i] * hash_vec[i];
+
+      			// pixels whom are alike will have the same hash value.
+      			// We only want to keep a unique list of hash values, therefore make sure we only insert
+      			// unique hash values.
+      			auto it = hashed_coords.find(hash_coord);
+      			if (it == hashed_coords.end())
+      			{
+      				hashed_coords.insert(std::pair<std::int64_t, int>(hash_coord, vert_idx));
+      				// tripletList.push_back(T(vert_idx, pix_idx, 1.0f));
+              // S_temp.insert(vert_idx,pix_idx) = 1.0f;
+              valid_idx[pix_idx] = vert_idx;
+      				++vert_idx;
+      			}
+      			else
+      			{
+      				// tripletList.push_back(T(it->second, pix_idx, 1.0f));
+              // S_temp.insert(it->second,pix_idx) = 1.0f;
+              valid_idx[pix_idx] = it->second;
+      			}
+
+      			pref += 3; // skip 3 bytes (y u v)
+      			++pix_idx;
+      		}
+      	}
+        nvertices = hashed_coords.size();
+        // S_temp.makeCompressed();
+        S = Eigen::SparseMatrix<float, Eigen::ColMajor>(nvertices, npixels);
+        // S = S_temp.middleRows(0, nvertices);
+        for (int i = 0; i < npixels; i++)
+        {
+            S.insert(valid_idx[i],i) = 1.0f;
+        }
+        S.finalize();
+        std::cout << "nvertices:"<<nvertices << '\n';
+        // std::cout << S_temp.nonZeros() << '\n';
+        // std::cout << S_temp.rows()<<"x"<<S_temp.cols() << '\n';
+        // std::cout << S.nonZeros() << '\n';
+        // std::cout << S.rows()<<"x"<<S.cols() << '\n';
+      	std::chrono::steady_clock::time_point end_splat_construction = std::chrono::steady_clock::now();
+      	std::cout << "S construction: " << std::chrono::duration_cast<std::chrono::milliseconds>(end_splat_construction - begin_grid_construction).count() << "ms" << std::endl;
+
+
+
+      	// Blur matrices   // Eigen::ColMajor or Eigen::ColMajor???
+      	std::chrono::steady_clock::time_point begin_blur_construction = std::chrono::steady_clock::now();
+        // blurs_test = Eigen::SparseMatrix<float, Eigen::ColMajor>(nvertices,nvertices);
+        Eigen::VectorXf ones_nvertices = Eigen::VectorXf::Ones(nvertices);
+        Eigen::VectorXf ones_npixels = Eigen::VectorXf::Ones(npixels);
+        blurs_test = ones_nvertices.asDiagonal();
+        blurs_test *= 10;
+        for(int offset = -1; offset <= 1;++offset)
+        {
+            if(offset == 0) continue;
+          	for (int i = 0; i < 5; ++i)
+          	{
+          	     Eigen::SparseMatrix<float, Eigen::ColMajor> blur_temp(hashed_coords.size(), hashed_coords.size());
+                 blur_temp.reserve(Eigen::VectorXi::Constant(nvertices,6));
+          		   std::int64_t offset_hash_coord = offset * hash_vec[i];
+
+        		     for (auto it = hashed_coords.begin(); it != hashed_coords.end(); ++it)
+      		       {
+      			         std::int64_t neighb_coord = it->first + offset_hash_coord;
+      			         auto it_neighb = hashed_coords.find(neighb_coord);
+      			         if (it_neighb != hashed_coords.end())
+          			     {
+                         blur_temp.insert(it->second,it_neighb->second) = 1.0f;
+          			     }
+
+          		   }
+                //  blur_temp.makeCompressed();
+                 blurs_test += blur_temp;
+              }
+        }
+
+        blurs_test.finalize();
+        std::cout <<"blurs_test:"<< blurs_test.nonZeros() << '\n';
+        std::cout << blurs_test.rows()<<"x"<<blurs_test.cols() << '\n';
+        // std::cout << S.nonZeros() << '\n';
+        // std::cout << S.rows()<<"x"<<S.cols() << '\n';
+
+
+      	std::chrono::steady_clock::time_point end_blur_construction = std::chrono::steady_clock::now();
+      	std::cout << "blur construction: " << std::chrono::duration_cast<std::chrono::milliseconds>(end_blur_construction - begin_blur_construction).count() << "ms" << std::endl;
+
+        //bistochastize
+        int maxiter = 10;
+        Eigen::VectorXf n = ones_nvertices;
+        Eigen::VectorXf m = S*ones_npixels;
+        Eigen::VectorXf bluredn;
+
+        for (int i = 0; i < maxiter; i++) {
+            bluredn = blurs_test*n;
+            n = ((n.array()*m.array()).array()/bluredn.array()).array().sqrt();
+        }
+        m = n.array() * (blurs_test*n).array();
+        // diags(m,Dm);
+        // diags(n,Dn);
+        Dm = m.asDiagonal();
+        Dn = n.asDiagonal();
+      	std::chrono::steady_clock::time_point end_bisto_construction = std::chrono::steady_clock::now();
+      	std::cout << "Dm Dn construction: " << std::chrono::duration_cast<std::chrono::milliseconds>(end_bisto_construction - end_blur_construction).count() << "ms" << std::endl;
+
+
+    }
+
+
     void solve(Eigen::MatrixXf& x,
                Eigen::MatrixXf& w,
                Eigen::MatrixXf& out)
@@ -42,9 +184,9 @@ using namespace cv;
       	std::chrono::steady_clock::time_point start_solve = std::chrono::steady_clock::now();
 
         // SparseMatrix<float> A_diag(nvertices);
-        Eigen::SparseMatrix<float> M(nvertices,nvertices);
-        Eigen::SparseMatrix<float> A_data(nvertices,nvertices);
-        Eigen::SparseMatrix<float> A(nvertices,nvertices);
+        Eigen::SparseMatrix<float, Eigen::ColMajor> M(nvertices,nvertices);
+        Eigen::SparseMatrix<float, Eigen::ColMajor> A_data(nvertices,nvertices);
+        Eigen::SparseMatrix<float, Eigen::ColMajor> A(nvertices,nvertices);
         Eigen::VectorXf b(nvertices);
         Eigen::VectorXf y(nvertices);
         Eigen::VectorXf w_splat(nvertices);
@@ -54,14 +196,15 @@ using namespace cv;
       	std::cout << "before A construction: " << std::chrono::duration_cast<std::chrono::milliseconds>(start_A_construction - start_solve).count() << "ms" << std::endl;
 
 	    // std::cout << "start Splat(w,w_splat)" << std::endl;
-        Splat(w,w_splat);
-        diags(w_splat,A_data);
+        // w_splat = S*w;
+        A_data = (S*w).asDiagonal();
+        // A.noalias() = bs_param.lam * (Dm - Dn * (blurs_test*Dn)) + A_data ;
         A = bs_param.lam * (Dm - Dn * (blurs_test*Dn)) + A_data ;
       	std::chrono::steady_clock::time_point end_A_construction = std::chrono::steady_clock::now();
       	std::cout << "A construction: " << std::chrono::duration_cast<std::chrono::milliseconds>(end_A_construction - start_A_construction).count() << "ms" << std::endl;
 
         xw = x.array() * w.array();
-        Splat(xw,b);
+        b = S*xw;
       	std::chrono::steady_clock::time_point end_b_construction = std::chrono::steady_clock::now();
       	std::cout << "b construction: " << std::chrono::duration_cast<std::chrono::milliseconds>(end_b_construction - end_A_construction).count() << "ms" << std::endl;
 
@@ -85,7 +228,10 @@ using namespace cv;
 
         // Slice(y,out);
 
-        out = Eigen::SparseMatrix<float,Eigen::RowMajor>(S.transpose())*y;
+        Eigen::SparseMatrix<float, Eigen::ColMajor> Sli = (S.transpose());
+        out.noalias() = Sli*y;
+        // out.noalias() = Eigen::SparseMatrix<float, Eigen::ColMajor>(S.transpose())*y;
+        // out = Eigen::SparseMatrix<float, Eigen::ColMajor>(S.transpose())*y;
         // std::cout << out << std::endl;
       	std::chrono::steady_clock::time_point end_slice = std::chrono::steady_clock::now();
       	std::cout << "slice: " << std::chrono::duration_cast<std::chrono::milliseconds>(end_slice - end_solve_y).count() << "ms" << std::endl;
@@ -123,34 +269,34 @@ using namespace cv;
         cv::Mat target = cv::imread(args[2],0);
         cv::Mat confidence = cv::imread(args[3],0);
 
-        // cv::Mat reference = cv::imread("testr.png",-1);
-        // cv::Mat im1 = cv::imread("testr.png",-1);
-        // // cv::Mat reference(im1.rows,im1.cols,CV_32FC3);
-        // cv::Mat target = cv::imread("testt.png",-1);
-        // cv::Mat confidence = cv::imread("testc.png",-1);
-
-        // std::cout << reference << std::endl;
-        // std::cout << target << std::endl;
-        // std::cout << confidence << std::endl;
-
-        // cv::Mat reference = cv::imread("rgb.png");
-        // cv::Mat im1 = cv::imread("rgb.png");
-        // cv::Mat target = cv::imread("depth.png");
-        // cv::Mat confidence = cv::imread("depth.png");
-        // cv::Mat target = cv::imread(argv[2],0);
-
-    	cvtColor(reference, reference, cv::COLOR_BGR2YCrCb);
-    	// cvtColor(target, target, cv::COLOR_BGR2YCrCb);
-    	// cvtColor(confidence, confidence, cv::COLOR_BGR2YCrCb);
-
-        std::cout << "reference:" << reference.cols<<"x"<< reference.rows<< std::endl;
-        // std::cout << reference << std::endl;
 
 
         float spatialSigma = float(atof(args[4]));
         float lumaSigma = float(atof(args[5]));
         float chromaSigma = float(atof(args[6]));
+        float fgs_spatialSigma = float(atof(args[7]));
+        float fgs_colorSigma = float(atof(args[8]));
 
+
+
+      	std::chrono::steady_clock::time_point start_fgs = std::chrono::steady_clock::now();
+        cv::Mat filtered_disp;
+        cv::ximgproc::fastGlobalSmootherFilter(reference, target, filtered_disp, fgs_spatialSigma, fgs_colorSigma);
+        // cv::ximgproc::fastGlobalSmootherFilter(reference, target, filtered_disp, spatialSigma*spatialSigma, lumaSigma);
+
+      	std::chrono::steady_clock::time_point end_fgs = std::chrono::steady_clock::now();
+      	std::cout << "fastGlobalSmootherFilter time: " << std::chrono::duration_cast<std::chrono::milliseconds>(end_fgs - start_fgs).count() << "ms" << std::endl;
+        cv::equalizeHist(filtered_disp, filtered_disp);
+        cv::imshow("fgs_filtered_disp",filtered_disp);
+
+
+
+
+
+
+    	  cvtColor(reference, reference, cv::COLOR_BGR2YUV);
+    	  // cvtColor(reference, reference, cv::COLOR_BGR2YCrCb);
+        std::cout << "reference:" << reference.cols<<"x"<< reference.rows<< std::endl;
         npixels = reference.cols*reference.rows;
 
         cv::Mat r(npixels, 5, CV_8U);
@@ -215,48 +361,19 @@ using namespace cv;
         std::cout << "finished cv2eigen" << std::endl;
 
 
-    	// std::cout << "start filling positions and values" << std::endl;
-        // now = clock();
-        // printf( "fill positions and values : now is %f seconds\n", (float)(now) / CLOCKS_PER_SEC);
-        // idx = 0;
-        // for (int y = 0; y < reference.cols; y++) {
-        //     for (int x = 0; x < reference.rows; x++) {
-        //         re[idx*5+0] = ceilf(x/spatialSigma);
-        //         re[idx*5+1] = ceilf(y/spatialSigma);
-        //         re[idx*5+2] = ceilf(reference.at<cv::Vec3b>(x,y)[0]/lumaSigma);
-        //         re[idx*5+3] = ceilf(reference.at<cv::Vec3b>(x,y)[1]/chromaSigma);
-        //         re[idx*5+4] = ceilf(reference.at<cv::Vec3b>(x,y)[2]/chromaSigma);
-        //
-        //         // ref[idx*5+0] = (x/spatialSigma);
-        //         // ref[idx*5+1] = (y/spatialSigma);
-        //         // ref[idx*5+2] = (reference.at<cv::Vec3b>(x,y)[0]/lumaSigma);
-        //         // ref[idx*5+3] = (reference.at<cv::Vec3b>(x,y)[1]/chromaSigma);
-        //         // ref[idx*5+4] = (reference.at<cv::Vec3b>(x,y)[2]/chromaSigma);
-        //         // tar[idx] = target.at<cv::Vec3b>(x,y)[0];
-        //         // con[idx] = confidence.at<cv::Vec3b>(x,y)[0];
-        //         // values[idx*4+1] = target.at<uchar>(x,y);
-        //         // values[idx*4+2] = target.at<uchar>(x,y);
-        //         // values[idx*4+1] = 1.0f;
-        //         // values[idx*4+2] = 1.0f;
-        //         // values[idx*4+3] = 1.0f;
-        //         idx++;
-        //     }
-        // }
+
 
         filtering_time = (float)getTickCount();
 
       	std::chrono::steady_clock::time_point start_solver = std::chrono::steady_clock::now();
         compute_factorization(reference, spatialSigma, lumaSigma, chromaSigma);
-        // compute_factorization(ref);
-        // compute_factorization(re);
-        // std::cout << ref << std::endl;
-
-        // bistochastize();
 
         solve(tar,con,tar);
 
       	std::chrono::steady_clock::time_point end_solver = std::chrono::steady_clock::now();
       	std::cout << "solver time: " << std::chrono::duration_cast<std::chrono::milliseconds>(end_solver - start_solver).count() << "ms" << std::endl;
+
+
         // Divide through by the homogeneous coordinate and store the
         // result back to the image
         idx = 0;

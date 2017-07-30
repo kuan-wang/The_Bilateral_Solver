@@ -37,19 +37,49 @@ int main(int argc, char const *argv[]) {
 
     std::cout << "test" << '\n';
 
-// using namespace std;
-// using namespace Eigen;
-//
-//     int rows=10, cols = 10;
-//     Eigen::SparseMatrix<float> mat(rows,cols);         // 默认列优先
-//     Eigen::SparseMatrix<float> mat1(3,cols);         // 默认列优先
-//     // mat.reserve(VectorXi::Constant(cols,1)); //关键：为每一列保留6个非零元素空间
-//     for(int i=0; i<7; i++){ //遍历行
-//         for(int j=0;j<7; j++){
-//             int v_ij = i+j+1;
-//             mat.insert(i,j) = v_ij;                    // alternative: mat.coeffRef(i,j) += v_ij;
-//         }
-//     }
+// #define _DEBUG_TEST_
+#ifdef _DEBUG_TEST_
+using namespace std;
+using namespace Eigen;
+
+    int rows=1000000, cols = 1000000;
+    std::vector<int> v1 = generateRandomVector<int>(rows);
+    std::vector<int> v2 = generateRandomVector<int>(cols);
+    Eigen::SparseMatrix<float, Eigen::ColMajor> mat1(rows,cols);         // 默认列优先
+    Eigen::SparseMatrix<float, Eigen::RowMajor> mat2(cols,rows);         // 默认列优先
+    Eigen::SparseMatrix<float> mat3(rows,rows);         // 默认列优先
+    Eigen::SparseMatrix<float> mat4(cols,cols);         // 默认列优先
+    // mat.reserve(VectorXi::Constant(cols,1)); //关键：为每一列保留6个非零元素空间
+
+	  std::chrono::steady_clock::time_point start_insert1 = std::chrono::steady_clock::now();
+    for (int i = 0; i < rows; i++) {
+        mat1.insert(v1[i],i) = 1.0f;
+    }
+	  std::chrono::steady_clock::time_point end_insert1 = std::chrono::steady_clock::now();
+    for (int i = 0; i < cols; i++) {
+        mat2.insert(i,v2[i]) = 1.0f;
+    }
+	  std::chrono::steady_clock::time_point end_insert2 = std::chrono::steady_clock::now();
+    for (int i = 0; i < 10; i++) {
+        mat3 = mat1*mat2;
+    }
+	  std::chrono::steady_clock::time_point end_mul1 = std::chrono::steady_clock::now();
+    for (int i = 0; i < 10; i++) {
+        mat4 = mat2*mat1;
+    }
+	  std::chrono::steady_clock::time_point end_mul2 = std::chrono::steady_clock::now();
+	  std::cout << "insert1: " << std::chrono::duration_cast<std::chrono::milliseconds>(end_insert1 - start_insert1).count() << "ms" << std::endl;
+	  std::cout << "insert2: " << std::chrono::duration_cast<std::chrono::milliseconds>(end_insert2 - end_insert1).count() << "ms" << std::endl;
+	  std::cout << "mul1: " << std::chrono::duration_cast<std::chrono::milliseconds>(end_mul1 - end_insert2).count() << "ms" << std::endl;
+	  std::cout << "mul2: " << std::chrono::duration_cast<std::chrono::milliseconds>(end_mul2 - end_mul1).count() << "ms" << std::endl;
+
+#endif
+    // for(int i=0; i<7; i++){ //遍历行
+        // for(int j=0;j<7; j++){
+            // int v_ij = i+j+1;
+            // mat.insert(i,j) = v_ij;                    // alternative: mat.coeffRef(i,j) += v_ij;
+        // }
+    // }
 //     // mat.makeCompressed(); //压缩剩余的空间
 //     mat1 = mat.middleRows(0,3);
 //     cout << mat << endl;

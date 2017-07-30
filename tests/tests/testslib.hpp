@@ -67,13 +67,13 @@ static int nvertices = 10;
 static int dim = 5;
 static int pd = 5;
 static int vd = 4;
-static std::vector<Eigen::SparseMatrix<float> > blurs;
+static std::vector<Eigen::SparseMatrix<float, Eigen::ColMajor> > blurs;
 static std::vector<Eigen::Triplet<float> > triple_blur(100000*10);
 static std::vector<Eigen::Triplet<float> > triple_S(1000000);
-static Eigen::SparseMatrix<float> blurs_test;
-static Eigen::SparseMatrix<float> S;
-static Eigen::SparseMatrix<float> Dn;
-static Eigen::SparseMatrix<float> Dm;
+static Eigen::SparseMatrix<float, Eigen::ColMajor> blurs_test;
+static Eigen::SparseMatrix<float, Eigen::ColMajor> S;
+static Eigen::SparseMatrix<float, Eigen::ColMajor> Dn;
+static Eigen::SparseMatrix<float, Eigen::ColMajor> Dm;
 
     struct grid_params
     {

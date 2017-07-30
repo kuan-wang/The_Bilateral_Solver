@@ -49,7 +49,7 @@
 
       	// loop through each pixel of the image
         // Eigen::SparseMatrix<float, Eigen::RowMajor>(
-        Eigen::SparseMatrix<float> S_temp(npixels,npixels);
+        Eigen::SparseMatrix<float, Eigen::RowMajor> S_temp(npixels,npixels);
         // S_temp.reserve(Eigen::VectorXi::Constant(npixels,1));
       	for (int y = 0; y < h; ++y)
       	{
@@ -90,7 +90,7 @@
       	}
         nvertices = hashed_coords.size();
         // S_temp.makeCompressed();
-        S = Eigen::SparseMatrix<float>(nvertices, npixels);
+        S = Eigen::SparseMatrix<float, Eigen::RowMajor>(nvertices, npixels);
         S = S_temp.middleRows(0, nvertices);
         S.finalize();
         std::cout << "nvertices:"<<nvertices << '\n';
@@ -105,7 +105,7 @@
 
       	// Blur matrices   // Eigen::RowMajor or Eigen::ColMajor???
       	std::chrono::steady_clock::time_point begin_blur_construction = std::chrono::steady_clock::now();
-        // blurs_test = Eigen::SparseMatrix<float>(nvertices,nvertices);
+        // blurs_test = Eigen::SparseMatrix<float, Eigen::RowMajor>(nvertices,nvertices);
         Eigen::VectorXf ones_nvertices = Eigen::VectorXf::Ones(nvertices);
         Eigen::VectorXf ones_npixels = Eigen::VectorXf::Ones(npixels);
         blurs_test = ones_nvertices.asDiagonal();
@@ -115,7 +115,7 @@
             if(offset == 0) continue;
           	for (int i = 0; i < 5; ++i)
           	{
-          	     Eigen::SparseMatrix<float> blur_temp(hashed_coords.size(), hashed_coords.size());
+          	     Eigen::SparseMatrix<float, Eigen::RowMajor> blur_temp(hashed_coords.size(), hashed_coords.size());
                 //  blur_temp.reserve(Eigen::VectorXi::Constant(nvertices,6));
           		   std::int64_t offset_hash_coord = offset * hash_vec[i];
 

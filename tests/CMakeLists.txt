@@ -6,6 +6,9 @@ project( Bilateral_solver )
 set(CMAKE_BUILD_TYPE "Release")
 #set(CMAKE_BUILD_TYPE "Debug")
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mfma")
+
 # Check C++11 or C++0x support
 include(CheckCXXCompilerFlag)
 CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
@@ -24,7 +27,7 @@ endif()
 
 LIST(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules)
 
-FIND_PACKAGE( OpenMP REQUIRED)
+FIND_PACKAGE(OpenMP REQUIRED)
 if(OPENMP_FOUND)
 message("OPENMP FOUND")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
@@ -74,14 +77,14 @@ ${EIGEN3_LIBS}
 add_executable(Test run.cpp)
 target_link_libraries(Test ${PROJECT_NAME} )
 
-add_executable(lattice tests/lattice_solver.cpp)
-target_link_libraries(lattice ${PROJECT_NAME} )
+#add_executable(lattice tests/lattice_solver.cpp)
+#target_link_libraries(lattice ${PROJECT_NAME} )
 
-add_executable(joint tests/jointbilateral.cpp)
-target_link_libraries(joint ${PROJECT_NAME} )
+#add_executable(joint tests/jointbilateral.cpp)
+#target_link_libraries(joint ${PROJECT_NAME} )
 
 add_executable(disparity tests/disparity.cpp)
 target_link_libraries(disparity ${PROJECT_NAME} )
 
-add_executable(parallelfor tests/parallel_for_test.cpp tests/parallel_for_test.hpp)
-target_link_libraries(parallelfor ${PROJECT_NAME} )
+#add_executable(parallelfor tests/parallel_for_test.cpp tests/parallel_for_test.hpp)
+#target_link_libraries(parallelfor ${PROJECT_NAME} )
