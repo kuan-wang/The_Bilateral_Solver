@@ -71,23 +71,23 @@ ${OpenCV_LIBS}
 ${EIGEN3_LIBS}
 )
 
-add_executable( Colorize colorization.cpp)
-target_link_libraries( Colorize ${PROJECT_NAME} )
+#add_executable( Colorize colorization.cpp)
+#target_link_libraries( Colorize ${PROJECT_NAME} )
 
-add_executable( Depthsuperres depthsuperresolution.cpp)
-target_link_libraries( Depthsuperres ${PROJECT_NAME} )
+#add_executable( Depthsuperres depthsuperresolution.cpp)
+#target_link_libraries( Depthsuperres ${PROJECT_NAME} )
 
-add_executable( Latticefilter permutohedral_lattice.cpp)
-target_link_libraries( Latticefilter ${PROJECT_NAME} )
+#add_executable( Latticefilter permutohedral_lattice.cpp)
+#target_link_libraries( Latticefilter ${PROJECT_NAME} )
 
-add_executable( depth_solver depth.cpp BilateralSolver.hpp)
-target_link_libraries( depth_solver ${PROJECT_NAME} )
+#add_executable( depth_solver depth.cpp BilateralSolver.hpp)
+#target_link_libraries( depth_solver ${PROJECT_NAME} )
 
-add_executable( color_solver color.cpp BilateralSolver.hpp)
-target_link_libraries( color_solver ${PROJECT_NAME} )
+#add_executable( color_solver color.cpp BilateralSolver.hpp)
+#target_link_libraries( color_solver ${PROJECT_NAME} )
 
-#add_executable( BilateralSolver BilateralSolver.cpp)
-#target_link_libraries( BilateralSolver ${PROJECT_NAME} )
+add_executable(bilater BilateralSolver.cpp BilateralSolver.hpp)
+target_link_libraries(bilater ${PROJECT_NAME} )
 
 
 #add_executable(SparseMatrix  Sparse-Matrix/src/SparseMatrix/SparseMatrix.cpp Sparse-Matrix/tests/run.cpp)
