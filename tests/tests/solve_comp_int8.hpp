@@ -6,6 +6,7 @@
 
 #include <iostream>
 #include <chrono>
+#include <cmath>
 
 #include "testslib.hpp"
 // #include "factorization.hpp"
@@ -24,6 +25,11 @@
 
 using namespace cv;
 
+
+
+    void Splat(Eigen::VectorXf& input, Eigen::VectorXf& output);
+    void Blur(Eigen::VectorXf& input, Eigen::VectorXf& output);
+    void Slice(Eigen::VectorXf& input, Eigen::VectorXf& output);
 
 
     void compute_factorization(cv::Mat& reference_bgr, float sigma_spatial, float sigma_luma, float sigma_chroma)
@@ -52,10 +58,10 @@ using namespace cv;
       	// loop through each pixel of the image
         // Eigen::SparseMatrix<float, Eigen::ColMajor> S_temp(npixels,npixels);
         // S_temp.reserve(Eigen::VectorXi::Constant(npixels,1));
-        std::vector<int> valid_idx(npixels);
-      	for (int y = 0; y < h; ++y)
+        splat_idx.resize(npixels);
+    	  for (int y = 0; y < h; ++y)
       	{
-      		for (int x = 0; x < w; ++x)
+    	    for (int x = 0; x < w; ++x)
       		{
       			std::int64_t coord[5];
       			coord[0] = int(x / sigma_spatial);
@@ -76,16 +82,14 @@ using namespace cv;
       			if (it == hashed_coords.end())
       			{
       				hashed_coords.insert(std::pair<std::int64_t, int>(hash_coord, vert_idx));
-      				// tripletList.push_back(T(vert_idx, pix_idx, 1.0f));
               // S_temp.insert(vert_idx,pix_idx) = 1.0f;
-              valid_idx[pix_idx] = vert_idx;
+              splat_idx[pix_idx] = vert_idx;
       				++vert_idx;
       			}
       			else
       			{
-      				// tripletList.push_back(T(it->second, pix_idx, 1.0f));
               // S_temp.insert(it->second,pix_idx) = 1.0f;
-              valid_idx[pix_idx] = it->second;
+              splat_idx[pix_idx] = it->second;
       			}
 
       			pref += 3; // skip 3 bytes (y u v)
@@ -94,13 +98,13 @@ using namespace cv;
       	}
         nvertices = hashed_coords.size();
         // S_temp.makeCompressed();
-        S = Eigen::SparseMatrix<float, Eigen::ColMajor>(nvertices, npixels);
+        // S = Eigen::SparseMatrix<float, Eigen::ColMajor>(nvertices, npixels);
         // S = S_temp.middleRows(0, nvertices);
-        for (int i = 0; i < npixels; i++)
-        {
-            S.insert(valid_idx[i],i) = 1.0f;
-        }
-        S.finalize();
+        // for (int i = 0; i < npixels; i++)
+        // {
+            // S.insert(splat_idx[i],i) = 1.0f;
+        // }
+        // S.finalize();
         std::cout << "nvertices:"<<nvertices << '\n';
         // std::cout << S_temp.nonZeros() << '\n';
         // std::cout << S_temp.rows()<<"x"<<S_temp.cols() << '\n';
@@ -111,6 +115,9 @@ using namespace cv;
 
 
 
+
+
+
       	// Blur matrices   // Eigen::ColMajor or Eigen::ColMajor???
       	std::chrono::steady_clock::time_point begin_blur_construction = std::chrono::steady_clock::now();
         // blurs_test = Eigen::SparseMatrix<float, Eigen::ColMajor>(nvertices,nvertices);
@@ -118,6 +125,7 @@ using namespace cv;
         Eigen::VectorXf ones_npixels = Eigen::VectorXf::Ones(npixels);
         blurs_test = ones_nvertices.asDiagonal();
         blurs_test *= 10;
+        // for(int offset = 0; offset <= 1;++offset)
         for(int offset = -1; offset <= 1;++offset)
         {
             if(offset == 0) continue;
@@ -134,6 +142,7 @@ using namespace cv;
       			         if (it_neighb != hashed_coords.end())
           			     {
                          blur_temp.insert(it->second,it_neighb->second) = 1.0f;
+                         blur_idx.push_back(std::pair<int,int>(it->second, it_neighb->second));
           			     }
 
           		   }
@@ -154,15 +163,50 @@ using namespace cv;
 
         //bistochastize
         int maxiter = 10;
-        Eigen::VectorXf n = ones_nvertices;
-        Eigen::VectorXf m = S*ones_npixels;
-        Eigen::VectorXf bluredn;
+        n = ones_nvertices;
+        // Eigen::VectorXf& n = ones_nvertices;
+
+      	// std::chrono::steady_clock::time_point start_m_construction = std::chrono::steady_clock::now();
+        // Eigen::VectorXf m = S*ones_npixels;
+      	// std::chrono::steady_clock::time_point end_m_construction = std::chrono::steady_clock::now();
+      	// std::cout << "m construction: " << std::chrono::duration_cast<std::chrono::milliseconds>(end_m_construction - start_m_construction).count() << "ms" << std::endl;
+
+        // Eigen::VectorXf m(nvertices);
+        m = Eigen::VectorXf::Zero(nvertices);
+        // m.setZero();   // it's better to make a copy of zeros and ones for multi_use?
+        for (int i = 0; i < splat_idx.size(); i++) {
+            m(splat_idx[i]) += 1.0f;
+        }
+
+        Eigen::VectorXf bluredn(nvertices);
+        Eigen::VectorXf bluredntest(nvertices);
 
         for (int i = 0; i < maxiter; i++) {
-            bluredn = blurs_test*n;
+            // bluredn = blurs_test*n;
+            Blur(n,bluredn);
             n = ((n.array()*m.array()).array()/bluredn.array()).array().sqrt();
+            // for (int i = 0; i < nvertices; i++)
+            // {
+                // n(i) = sqrt(n(i)*m(i)/bluredn(i));
+            // }
         }
-        m = n.array() * (blurs_test*n).array();
+
+      	// std::chrono::steady_clock::time_point start_bluredn = std::chrono::steady_clock::now();
+        // bluredn = blurs_test*n;
+        Blur(n,bluredn);
+      	// std::chrono::steady_clock::time_point end_bluredn = std::chrono::steady_clock::now();
+      	// std::cout << "bluredn construction: " << std::chrono::duration_cast<std::chrono::milliseconds>(end_bluredn - start_bluredn).count() << "ms" << std::endl;
+
+      	// std::chrono::steady_clock::time_point start_bluredntest = std::chrono::steady_clock::now();
+        // Blur(n,bluredntest);
+      	// std::chrono::steady_clock::time_point end_bluredntest = std::chrono::steady_clock::now();
+      	// std::cout << "testbluredn construction: " << std::chrono::duration_cast<std::chrono::milliseconds>(end_bluredntest - start_bluredntest).count() << "ms" << std::endl;
+
+
+        m = n.array() * (bluredn).array();
+        // for (int i = 0; i < nvertices; i++) {
+            // m(i) = n(i) * bluredn(i);
+        // }
         // diags(m,Dm);
         // diags(n,Dn);
         Dm = m.asDiagonal();
@@ -173,15 +217,111 @@ using namespace cv;
 
     }
 
+    void Splat(Eigen::VectorXf& input, Eigen::VectorXf& output)
+    {
+        output.setZero();
+        for (int i = 0; i < splat_idx.size(); i++) {
+            output(splat_idx[i]) += input(i);
+        }
 
-    void solve(Eigen::MatrixXf& x,
-               Eigen::MatrixXf& w,
-               Eigen::MatrixXf& out)
+    }
+
+    void Blur(Eigen::VectorXf& input, Eigen::VectorXf& output)
+    {
+        output.setZero();
+        output = input * 10;
+        for (int i = 0; i < blur_idx.size(); i++)
+        {
+            output(blur_idx[i].first) += input(blur_idx[i].second);
+        }
+    }
+
+
+    void Slice(Eigen::VectorXf& input, Eigen::VectorXf& output)
+    {
+        output.setZero();
+        for (int i = 0; i < splat_idx.size(); i++) {
+            output(i) = input(splat_idx[i]);
+        }
+
+    }
+
+    void filter(cv::Mat& target,
+                cv::Mat& confidence,
+                cv::Mat& output)
     {
 
+        Eigen::VectorXf x(npixels);
+        Eigen::VectorXf w(npixels);
+        Eigen::VectorXf xw(npixels);
+        Eigen::VectorXf splat_xw(nvertices);
+        Eigen::VectorXf splat_w(nvertices);
+        Eigen::VectorXf blur_xw(nvertices);
+        Eigen::VectorXf blur_w(nvertices);
+        Eigen::VectorXf slice_xw(npixels);
+        Eigen::VectorXf slice_w(npixels);
 
 
+      	const uchar *pft = reinterpret_cast<const uchar*>(target.data);
+      	for (int i = 0; i < npixels; i++)
+      	{
+      		  x(i) = float(pft[i])/255.0f;
+        }
+      	const uchar *pfc = reinterpret_cast<const uchar*>(confidence.data);
+      	for (int i = 0; i < npixels; i++)
+      	{
+      		  w(i) = float(pfc[i])/255.0f;
+        }
+        // xw.setZero();
+        for (int i = 0; i < x.size(); i++) {
+            xw(i) = x(i) * w(i);
+        }
+        Splat(xw, splat_xw);
+        Splat(w, splat_w);
+        Blur(splat_xw, blur_xw);
+        Blur(splat_w, blur_w);
+        // Slice(blur_xw, slice_xw);
+        // Slice(blur_w, slice_w);
+        // for (int i = 0; i < x.size(); i++) {
+            // out(i) = slice_xw(i) / slice_w(i);
+        // }
+
+      	uchar *pftar = (uchar*)(output.data);
+      	for (int i = 0; i < splat_idx.size(); i++)
+      	{
+      		  pftar[i] = (blur_xw(splat_idx[i])/blur_w(splat_idx[i])) * 255;
+        }
+
+
+    }
+
+    //
+    // void solve(Eigen::MatrixXf& x,
+    //            Eigen::MatrixXf& w,
+    //            Eigen::MatrixXf& out)
+    // {
+    // void solve(Eigen::VectorXf& x,
+              //  Eigen::VectorXf& w,
+              //  Eigen::VectorXf& out)
+    void solve(cv::Mat& target,
+               cv::Mat& confidence,
+               cv::Mat& output)
+    {
       	std::chrono::steady_clock::time_point start_solve = std::chrono::steady_clock::now();
+
+        Eigen::VectorXf x(npixels);
+        Eigen::VectorXf w(npixels);
+
+      	const uchar *pft = reinterpret_cast<const uchar*>(target.data);
+      	for (int i = 0; i < npixels; i++)
+      	{
+      		  x(i) = float(pft[i])/255.0f;
+        }
+      	const uchar *pfc = reinterpret_cast<const uchar*>(confidence.data);
+      	for (int i = 0; i < npixels; i++)
+      	{
+      		  w(i) = float(pfc[i])/255.0f;
+        }
 
         // SparseMatrix<float> A_diag(nvertices);
         Eigen::SparseMatrix<float, Eigen::ColMajor> M(nvertices,nvertices);
@@ -191,20 +331,50 @@ using namespace cv;
         Eigen::VectorXf y(nvertices);
         Eigen::VectorXf w_splat(nvertices);
         Eigen::VectorXf xw(x.size());
+        Eigen::VectorXf A_pre(nvertices);
+        std::vector<float> A_vec(blur_idx.size() + nvertices);
 
       	std::chrono::steady_clock::time_point start_A_construction = std::chrono::steady_clock::now();
       	std::cout << "before A construction: " << std::chrono::duration_cast<std::chrono::milliseconds>(start_A_construction - start_solve).count() << "ms" << std::endl;
 
 	    // std::cout << "start Splat(w,w_splat)" << std::endl;
+      	// std::chrono::steady_clock::time_point start_ws_construction = std::chrono::steady_clock::now();
         // w_splat = S*w;
-        A_data = (S*w).asDiagonal();
+      	// std::chrono::steady_clock::time_point end_ws_construction = std::chrono::steady_clock::now();
+      	// std::cout << "w_splat construction: " << std::chrono::duration_cast<std::chrono::milliseconds>(end_ws_construction - start_ws_construction).count() << "ms" << std::endl;
+
+      	std::chrono::steady_clock::time_point start_wst_construction = std::chrono::steady_clock::now();
+        Splat(w,w_splat);
+        // w_splat.setZero();
+        // for (int i = 0; i < splat_idx.size(); i++) {
+            // w_splat(splat_idx[i]) += w(i);
+        // }
+      	std::chrono::steady_clock::time_point end_wst_construction = std::chrono::steady_clock::now();
+      	std::cout << "w_splat construction: " << std::chrono::duration_cast<std::chrono::milliseconds>(end_wst_construction - start_wst_construction).count() << "ms" << std::endl;
+
+
+        A_data = (w_splat).asDiagonal();
         // A.noalias() = bs_param.lam * (Dm - Dn * (blurs_test*Dn)) + A_data ;
+        // A_data.setZero();
+        // for (int i = 0; i < blur_idx.size(); i++) {
+        //     // A_data.coeffRef(blur_idx[i].first,blur_idx[i].second) += n(blur_idx[i].first)*n(blur_idx[i].second);
+        //     A_vec[i] = n(blur_idx[i].first)*n(blur_idx[i].second);
+        // }
+        // A_pre.setZero();
+        // for (int i = 0; i < nvertices; i++) {
+        //     A_pre(i) = bs_param.lam*(m(i) - n(i)*n(i)) + w_splat(i);
+        // }
+        // A = A_pre.asDiagonal();
+        // A = A - bs_param.lam * A_data;
         A = bs_param.lam * (Dm - Dn * (blurs_test*Dn)) + A_data ;
       	std::chrono::steady_clock::time_point end_A_construction = std::chrono::steady_clock::now();
       	std::cout << "A construction: " << std::chrono::duration_cast<std::chrono::milliseconds>(end_A_construction - start_A_construction).count() << "ms" << std::endl;
 
-        xw = x.array() * w.array();
-        b = S*xw;
+        // xw = x.array() * w.array();
+        b.setZero();
+        for (int i = 0; i < splat_idx.size(); i++) {
+            b(splat_idx[i]) += x(i) * w(i);
+        }
       	std::chrono::steady_clock::time_point end_b_construction = std::chrono::steady_clock::now();
       	std::cout << "b construction: " << std::chrono::duration_cast<std::chrono::milliseconds>(end_b_construction - end_A_construction).count() << "ms" << std::endl;
 
@@ -228,8 +398,18 @@ using namespace cv;
 
         // Slice(y,out);
 
-        Eigen::SparseMatrix<float, Eigen::ColMajor> Sli = (S.transpose());
-        out.noalias() = Sli*y;
+        // for (int i = 0; i < splat_idx.size(); i++) {
+            // out(i) = y(splat_idx[i]);
+        // }
+
+      	uchar *pftar = (uchar*)(output.data);
+      	for (int i = 0; i < splat_idx.size(); i++)
+      	{
+      		  pftar[i] = y(splat_idx[i]) * 255;
+        }
+
+        // Eigen::SparseMatrix<float, Eigen::ColMajor> Sli = (S.transpose());
+        // out.noalias() = Sli*y;
         // out.noalias() = Eigen::SparseMatrix<float, Eigen::ColMajor>(S.transpose())*y;
         // out = Eigen::SparseMatrix<float, Eigen::ColMajor>(S.transpose())*y;
         // std::cout << out << std::endl;
@@ -280,8 +460,19 @@ using namespace cv;
 
 
       	std::chrono::steady_clock::time_point start_fgs = std::chrono::steady_clock::now();
+        cv::Mat x;
+        cv::Mat w;
+        cv::Mat xw;
+        cv::Mat filtered_xw;
+        cv::Mat filtered_w;
         cv::Mat filtered_disp;
-        cv::ximgproc::fastGlobalSmootherFilter(reference, target, filtered_disp, fgs_spatialSigma, fgs_colorSigma);
+	      target.convertTo(x, CV_32FC1, 1.0f/255.0f);
+	      confidence.convertTo(w, CV_32FC1);
+        xw = x.mul(w);
+        cv::ximgproc::fastGlobalSmootherFilter(reference, xw, filtered_xw, fgs_spatialSigma, fgs_colorSigma);
+        cv::ximgproc::fastGlobalSmootherFilter(reference, w, filtered_w, fgs_spatialSigma, fgs_colorSigma);
+        cv::divide(filtered_xw, filtered_w, filtered_disp, 255.0f, CV_8UC1);
+
         // cv::ximgproc::fastGlobalSmootherFilter(reference, target, filtered_disp, spatialSigma*spatialSigma, lumaSigma);
 
       	std::chrono::steady_clock::time_point end_fgs = std::chrono::steady_clock::now();
@@ -299,76 +490,28 @@ using namespace cv;
         std::cout << "reference:" << reference.cols<<"x"<< reference.rows<< std::endl;
         npixels = reference.cols*reference.rows;
 
-        cv::Mat r(npixels, 5, CV_8U);
-        cv::Mat t(npixels, 1, CV_32F);
-        cv::Mat c(npixels, 1, CV_32F);
-        // std::vector<float> re(reference.cols*reference.rows*5);
-        // std::vector<float> ta(reference.cols*reference.rows);
-        // std::vector<float> co(reference.cols*reference.rows);
-        int idx = 0;
-    	std::cout << "start filling positions and values" << std::endl;
-        now = clock();
-        printf( "fill positions and values : now is %f seconds\n", (float)(now) / CLOCKS_PER_SEC);
-        for (int y = 0; y < reference.rows; y++) {
-            for (int x = 0; x < reference.cols; x++) {
-                uchar *datar = r.ptr<uchar>(idx);
-                datar[0] = int(x/spatialSigma);
-                datar[1] = int(y/spatialSigma);
-                datar[2] = int(reference.at<cv::Vec3b>(y,x)[2]/lumaSigma);
-                datar[3] = int((reference.at<cv::Vec3b>(y,x)[1])/chromaSigma);
-                datar[4] = int((reference.at<cv::Vec3b>(y,x)[0])/chromaSigma);
-                // datar[0] = floorf(x/spatialSigma);
-                // datar[1] = floorf(y/spatialSigma);
-                // datar[2] = floorf(reference.at<cv::Vec3b>(y,x)[0]/lumaSigma);
-                // datar[3] = floorf(reference.at<cv::Vec3b>(y,x)[1]/chromaSigma);
-                // datar[4] = floorf(reference.at<cv::Vec3b>(y,x)[2]/chromaSigma);
-                // datar[3] = 1.0;
-                // datar[4] = 1.0;
-                idx++;
-            }
-        }
-        idx = 0;
-        for (int y = 0; y < reference.rows; y++) {
-            for (int x = 0; x < reference.cols; x++) {
-                float *datac = c.ptr<float>(idx);
-                // datac[0] = 1.0;
-                datac[0] = float(confidence.at<uchar>(y,x))/255.0;
-                // if(datac[0] != 0) datac[0] = 0.1/datac[0];
-                // datac[0] = confidence.at<float>(x,y)[0];
-                idx++;
-            }
-        }
-        idx = 0;
-        for (int y = 0; y < reference.rows; y++) {
-            for (int x = 0; x < reference.cols; x++) {
-                float *datat = t.ptr<float>(idx);
-                datat[0] = float(target.at<uchar>(y,x))/255.0;
-                // datat[0] = target.at<cv::Vec3b>(x,y)[0];
-                idx++;
-            }
-        }
-
-        std::cout << "cv2eigen" << std::endl;
-        Eigen::Matrix<uchar, Eigen::Dynamic, Eigen::Dynamic> ref_temp;
-        Eigen::Matrix<long long, Eigen::Dynamic, Eigen::Dynamic> ref;
-        Eigen::MatrixXf tar;
-        Eigen::MatrixXf con;
-
-        cv::cv2eigen(r,ref_temp);
-        cv::cv2eigen(t,tar);
-        cv::cv2eigen(c,con);
-        ref = ref_temp.cast<long long>();
-        std::cout << "finished cv2eigen" << std::endl;
-
-
-
+        // Eigen::VectorXf tar(npixels);
+        // Eigen::VectorXf con(npixels);
+        //
+      	// const uchar *pft = reinterpret_cast<const uchar*>(target.data);
+      	// for (int i = 0; i < npixels; i++)
+      	// {
+      	// 	  tar(i) = float(pft[i])/255.0f;
+        // }
+      	// const uchar *pfc = reinterpret_cast<const uchar*>(confidence.data);
+      	// for (int i = 0; i < npixels; i++)
+      	// {
+      	// 	  con(i) = float(pfc[i])/255.0f;
+        // }
+        //
 
         filtering_time = (float)getTickCount();
 
       	std::chrono::steady_clock::time_point start_solver = std::chrono::steady_clock::now();
         compute_factorization(reference, spatialSigma, lumaSigma, chromaSigma);
 
-        solve(tar,con,tar);
+        // filter(target,confidence,target);
+        solve(target,confidence,target);
 
       	std::chrono::steady_clock::time_point end_solver = std::chrono::steady_clock::now();
       	std::cout << "solver time: " << std::chrono::duration_cast<std::chrono::milliseconds>(end_solver - start_solver).count() << "ms" << std::endl;
@@ -376,19 +519,11 @@ using namespace cv;
 
         // Divide through by the homogeneous coordinate and store the
         // result back to the image
-        idx = 0;
-        for (int y = 0; y < reference.rows; y++) {
-            for (int x = 0; x < reference.cols; x++) {
-                // float w = values[idx*4+3];
-                target.at<uchar>(y,x) = tar(idx)*255.0;
-                // target.at<cv::uchar>(x,y) = values[idx*4+1]/w;
-                // target.at<cv::uchar>(x,y) = values[idx*4+2]/w;
-                // target.at<cv::Vec3b>(x,y)[0] = values[idx*4+0]/w;
-                // target.at<cv::Vec3b>(x,y)[1] = values[idx*4+0]/w;
-                // target.at<cv::Vec3b>(x,y)[2] = values[idx*4+0]/w;
-                idx++;
-            }
-        }
+      	// uchar *pftar = (uchar*)(target.data);
+      	// for (int i = 0; i < npixels; i++)
+      	// {
+      	// 	  pftar[i] = tar(i) * 255;
+        // }
 
     	// cvtColor(reference, reference, cv::COLOR_YCrCb2BGR);
     	// cvtColor(target, target, cv::COLOR_YCrCb2BGR);

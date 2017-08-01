@@ -42,36 +42,85 @@ int main(int argc, char const *argv[]) {
 using namespace std;
 using namespace Eigen;
 
-    int rows=1000000, cols = 1000000;
+    int rows=10000000, cols = 10000000;
     std::vector<int> v1 = generateRandomVector<int>(rows);
     std::vector<int> v2 = generateRandomVector<int>(cols);
     Eigen::SparseMatrix<float, Eigen::ColMajor> mat1(rows,cols);         // 默认列优先
     Eigen::SparseMatrix<float, Eigen::RowMajor> mat2(cols,rows);         // 默认列优先
     Eigen::SparseMatrix<float> mat3(rows,rows);         // 默认列优先
     Eigen::SparseMatrix<float> mat4(cols,cols);         // 默认列优先
+    Eigen::VectorXf one1 = Eigen::VectorXf::Ones(cols);
+    Eigen::VectorXf one2 = Eigen::VectorXf::Ones(cols);
+    Eigen::VectorXf one3 = Eigen::VectorXf::Ones(cols);
+    std::vector<float> one5(cols, 1);
+    std::vector<float> one6(cols, 1);
+    float* one7 = (float*)malloc(sizeof(float)*10000000);
+    float* one8 = (float*)malloc(sizeof(float)*10000000);
+    float* one9 = (float*)malloc(sizeof(float)*10000000);
+    memset(one7,'1',sizeof(float)*10000000);
+    memset(one8,'1',sizeof(float)*10000000);
+    memset(one9,'1',sizeof(float)*10000000);
     // mat.reserve(VectorXi::Constant(cols,1)); //关键：为每一列保留6个非零元素空间
 
 	  std::chrono::steady_clock::time_point start_insert1 = std::chrono::steady_clock::now();
     for (int i = 0; i < rows; i++) {
-        mat1.insert(v1[i],i) = 1.0f;
+        // mat1.insert(i,i) = 1.0f;
+        one3(i) = one1(i) * one1(i);
     }
 	  std::chrono::steady_clock::time_point end_insert1 = std::chrono::steady_clock::now();
+    // mat2 = one.asDiagonal();
     for (int i = 0; i < cols; i++) {
-        mat2.insert(i,v2[i]) = 1.0f;
+        // mat2.insert(i,v2[i]) = 1.0f;
+        // one6[i] = one5[i] * one5[i];
+        one9[i] = one8[i] * one7[i];
     }
 	  std::chrono::steady_clock::time_point end_insert2 = std::chrono::steady_clock::now();
+    Eigen::VectorXf one4 = Eigen::VectorXf::Ones(cols);
     for (int i = 0; i < 10; i++) {
-        mat3 = mat1*mat2;
+        // mat3 = mat1*mat2;
     }
 	  std::chrono::steady_clock::time_point end_mul1 = std::chrono::steady_clock::now();
     for (int i = 0; i < 10; i++) {
-        mat4 = mat2*mat1;
+        // mat4 = mat2*mat1;
     }
 	  std::chrono::steady_clock::time_point end_mul2 = std::chrono::steady_clock::now();
 	  std::cout << "insert1: " << std::chrono::duration_cast<std::chrono::milliseconds>(end_insert1 - start_insert1).count() << "ms" << std::endl;
 	  std::cout << "insert2: " << std::chrono::duration_cast<std::chrono::milliseconds>(end_insert2 - end_insert1).count() << "ms" << std::endl;
 	  std::cout << "mul1: " << std::chrono::duration_cast<std::chrono::milliseconds>(end_mul1 - end_insert2).count() << "ms" << std::endl;
 	  std::cout << "mul2: " << std::chrono::duration_cast<std::chrono::milliseconds>(end_mul2 - end_mul1).count() << "ms" << std::endl;
+
+
+
+    // int rows=1000000, cols = 1000000;
+    // std::vector<int> v1 = generateRandomVector<int>(rows);
+    // std::vector<int> v2 = generateRandomVector<int>(cols);
+    // Eigen::SparseMatrix<float, Eigen::ColMajor> mat1(rows,cols);         // 默认列优先
+    // Eigen::SparseMatrix<float, Eigen::RowMajor> mat2(cols,rows);         // 默认列优先
+    // Eigen::SparseMatrix<float> mat3(rows,rows);         // 默认列优先
+    // Eigen::SparseMatrix<float> mat4(cols,cols);         // 默认列优先
+    // // mat.reserve(VectorXi::Constant(cols,1)); //关键：为每一列保留6个非零元素空间
+    //
+	  // std::chrono::steady_clock::time_point start_insert1 = std::chrono::steady_clock::now();
+    // for (int i = 0; i < rows; i++) {
+    //     mat1.insert(v1[i],i) = 1.0f;
+    // }
+	  // std::chrono::steady_clock::time_point end_insert1 = std::chrono::steady_clock::now();
+    // for (int i = 0; i < cols; i++) {
+    //     mat2.insert(i,v2[i]) = 1.0f;
+    // }
+	  // std::chrono::steady_clock::time_point end_insert2 = std::chrono::steady_clock::now();
+    // for (int i = 0; i < 10; i++) {
+    //     mat3 = mat1*mat2;
+    // }
+	  // std::chrono::steady_clock::time_point end_mul1 = std::chrono::steady_clock::now();
+    // for (int i = 0; i < 10; i++) {
+    //     mat4 = mat2*mat1;
+    // }
+	  // std::chrono::steady_clock::time_point end_mul2 = std::chrono::steady_clock::now();
+	  // std::cout << "insert1: " << std::chrono::duration_cast<std::chrono::milliseconds>(end_insert1 - start_insert1).count() << "ms" << std::endl;
+	  // std::cout << "insert2: " << std::chrono::duration_cast<std::chrono::milliseconds>(end_insert2 - end_insert1).count() << "ms" << std::endl;
+	  // std::cout << "mul1: " << std::chrono::duration_cast<std::chrono::milliseconds>(end_mul1 - end_insert2).count() << "ms" << std::endl;
+	  // std::cout << "mul2: " << std::chrono::duration_cast<std::chrono::milliseconds>(end_mul2 - end_mul1).count() << "ms" << std::endl;
 
 #endif
     // for(int i=0; i<7; i++){ //遍历行
