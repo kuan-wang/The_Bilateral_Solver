@@ -18,6 +18,7 @@
 #include<opencv2/core/eigen.hpp>
 #include<opencv2/highgui.hpp>
 #include<opencv2/opencv.hpp>
+#include <opencv2/ximgproc.hpp>
 
 
 
@@ -188,7 +189,7 @@ CV_EXPORTS_W void fastBilateralSolverFilter(InputArray guide, InputArray src, In
       			// pixels whom are alike will have the same hash value.
       			// We only want to keep a unique list of hash values, therefore make sure we only insert
       			// unique hash values.
-      			auto it = hashed_coords.find(hash_coord);
+      			std::unordered_map<int64_t,int>::iterator it = hashed_coords.find(hash_coord);
       			if (it == hashed_coords.end())
       			{
       				hashed_coords.insert(std::pair<std::int64_t, int>(hash_coord, vert_idx));
@@ -221,10 +222,10 @@ CV_EXPORTS_W void fastBilateralSolverFilter(InputArray guide, InputArray src, In
           	     Eigen::SparseMatrix<float, Eigen::ColMajor> blur_temp(hashed_coords.size(), hashed_coords.size());
                  blur_temp.reserve(Eigen::VectorXi::Constant(nvertices,6));
           		   std::int64_t offset_hash_coord = offset * hash_vec[i];
-        		     for (auto it = hashed_coords.begin(); it != hashed_coords.end(); ++it)
+        		     for (std::unordered_map<int64_t,int>::iterator it = hashed_coords.begin(); it != hashed_coords.end(); ++it)
       		       {
       			         std::int64_t neighb_coord = it->first + offset_hash_coord;
-      			         auto it_neighb = hashed_coords.find(neighb_coord);
+      			         std::unordered_map<int64_t,int>::iterator it_neighb = hashed_coords.find(neighb_coord);
       			         if (it_neighb != hashed_coords.end())
           			     {
                          blur_temp.insert(it->second,it_neighb->second) = 1.0f;

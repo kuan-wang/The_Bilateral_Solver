@@ -86,5 +86,8 @@ target_link_libraries(Test ${PROJECT_NAME} )
 add_executable(disparity tests/disparity.cpp)
 target_link_libraries(disparity ${PROJECT_NAME} )
 
+add_executable(pallet tests/pallet.cpp)
+target_link_libraries(pallet ${PROJECT_NAME} )
+
 #add_executable(parallelfor tests/parallel_for_test.cpp tests/parallel_for_test.hpp)
 #target_link_libraries(parallelfor ${PROJECT_NAME} )

@@ -89,6 +89,12 @@ ${EIGEN3_LIBS}
 add_executable(bilater BilateralSolver.cpp BilateralSolver.hpp)
 target_link_libraries(bilater ${PROJECT_NAME} )
 
+add_executable(colorize new_color.cpp)
+target_link_libraries(colorize ${PROJECT_NAME} )
+
+add_executable(colorize_test color.cpp)
+target_link_libraries(colorize_test ${PROJECT_NAME} )
+
 
 #add_executable(SparseMatrix  Sparse-Matrix/src/SparseMatrix/SparseMatrix.cpp Sparse-Matrix/tests/run.cpp)
 #target_link_libraries( SparseMatrix ${PROJECT_NAME} )

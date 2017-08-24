@@ -92,8 +92,8 @@ int main(int argc, char** argv)
 
   	if (pair_image.cols > 0)
   	{
-  		right = pair_image(cv::Rect(0, 0, pair_image.cols >> 1, pair_image.rows)).clone();
-  		left = pair_image(cv::Rect(pair_image.cols >> 1, 0, pair_image.cols >> 1, pair_image.rows)).clone();
+  		left = pair_image(cv::Rect(0, 0, pair_image.cols >> 1, pair_image.rows)).clone();
+  		right = pair_image(cv::Rect(pair_image.cols >> 1, 0, pair_image.cols >> 1, pair_image.rows)).clone();
       imwrite("left_im.jpg", left);
       imwrite("right_im.jpg", right);
   	}
