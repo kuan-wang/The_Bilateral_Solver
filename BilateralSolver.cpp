@@ -42,11 +42,11 @@ int main(int argc, char const *argv[]) {
         cv::Mat reference = cv::imread(argv[1],1);
         cv::Mat target = cv::imread(argv[2],0);
         // cv::Mat confidence = cv::imread(argv[3],0);
-        float spatialSigma = float(atof(argv[4]));
-        float lumaSigma = float(atof(argv[5]));
-        float chromaSigma = float(atof(argv[6]));
-        float fgs_spatialSigma = float(atof(argv[7]));
-        float fgs_colorSigma = float(atof(argv[8]));
+        float spatialSigma = float(atof(argv[4]));      //8.0
+        float lumaSigma = float(atof(argv[5]));         //8.0
+        float chromaSigma = float(atof(argv[6]));       //8.0
+        float fgs_spatialSigma = float(atof(argv[7]));  //2000
+        float fgs_colorSigma = float(atof(argv[8]));    //1.5
 
         std::string rgbd_file = argv[3];
 
