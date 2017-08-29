@@ -1,0 +1,162 @@
+\#\+The Fast Bilateral Solver ({\bfseries Still in development})
+
+{\bfseries The Bilater Solver} is a novel algorithm for edge-\/aware smoothing that combines the flexibility and speed of simple filtering approaches with the accuracy of domain-\/specific optimization algorithms. This algorithm was presented by Jonathan T. Barron and Ben Poole as an E\+C\+C\+V2016 oral and best paper nominee. Algorithm details and applications can be found in \href{https://arxiv.org/pdf/1511.03296.pdf}{\tt https\+://arxiv.\+org/pdf/1511.\+03296.\+pdf} .
+
+
+
+
+
+
+
+ \subsection*{Introduce}
+
+\subsubsection*{Algorithm}
+
+We begin by presenting the objective and optimization techniques that make up our bilateral solver. Let us assume that we have some per-\/pixel input quantities {\bfseries t} (the “target” value, see Figure 1a) and some per-\/pixel confidence of those quantities {\bfseries c} (Figure 1c), both represented as vectorized images. Let us also assume that we have some “reference” image (Figure 1d), which is a normal R\+GB image. Our goal is to recover an “output” vector x (Figure 1b), which will resemble the input target where the confidence is large while being smooth and tightly aligned to edges in the reference image. We will accomplish this by constructing an optimization problem consisting of an image-\/dependent smoothness term that encourages {\bfseries x} to be bilateral-\/smooth, and a data-\/fidelity term that minimizes the squared residual between x and the target {\bfseries t} weighted by our confidence {\bfseries c}\+: \$\$minimize\{\}\{2\}\{i,j\}\{W\}\+\_\+\{i,j\}(x\+\_\+i-\/x\+\_\+j)$^\wedge$\{2\}+\{i\}(c\+\_\+i-\/t\+\_\+i)$^\wedge$\{2\}  (1)\$\$ The smoothness term in this optimization problem is built around an affinity matrix Ŵ , which is a bistochastized version of a bilateral affinity matrix {\bfseries W} . Each element of the bilateral affinity matrix \$\+W\+\_\+\{i,j\}\$ reflects the affinity between pixels i and j in the reference image in the Y\+UV colorspace\+: \$\$\+W\+\_\+\{i,j\} = (-\/\{ $|$\mbox{[}p\+\_\+i$^\wedge$x,p\+\_\+i$^\wedge$y\mbox{]}-\/\mbox{[}\mbox{[}p\+\_\+j$^\wedge$x,p\+\_\+j$^\wedge$y\mbox{]}\mbox{]} $|$\}\{2\{xy\}$^\wedge$2\}-\/\{(p\+\_\+i$^\wedge$l-\/p\+\_\+j$^\wedge$l)$^\wedge$2\}\{2\{l\}$^\wedge$2\}-\/\{ $|$\mbox{[}p\+\_\+i$^\wedge$u,p\+\_\+i$^\wedge$v\mbox{]}-\/\mbox{[}\mbox{[}p\+\_\+j$^\wedge$u,p\+\_\+j$^\wedge$v\mbox{]}\mbox{]} $|$\}\{2\{uv\}$^\wedge$2\}) (2)\$\$ Where \$p\+\_\+i\$ is a pixel in our reference image with a spatial position \$(p\+\_\+i$^\wedge$x, p\+\_\+i$^\wedge$y )\$ and color \$(p\+\_\+i$^\wedge$l , p\+\_\+i$^\wedge$u , p\+\_\+i$^\wedge$v )\$. The \$\{xy\} , \$ , and \$σ\+\_\+\{uv\}\$ parameters control the extent of the spatial, luma, and chroma support of the filter, respectively. This {\bfseries W} matrix is commonly used in the bilateral filter, an edge-\/preserving filter that blurs within regions but not across edges by locally adapting the filter to the image content. There are techniques for speeding up bilateral filtering which treat the filter as a {\bfseries “splat/blur/slice”} procedure\+: pixel values are “splatted” onto a small set of vertices in a grid or lattice (a soft histogramming operation), then those vertex values are blurred, and then the filtered pixel values are produced via a “slice” (an interpolation) of the blurred vertex values. These splat/blur/slice filtering approaches all correspond to a compact and efficient factorization of {\bfseries W} \+: \$\$W = S$^\wedge$T\{B\}S (3)\$\$ Barron et al. built on this idea to allow for optimization problems to be “splatted” and solved in bilateral-\/space. They use a “simplified” bilateral grid and a technique for producing bistochastization matrices \$\+D\+\_\+n , D\+\_\+m\$ that together give the the following equivalences\+: \$\$\{W\} = S$^\wedge$\+T\+D\+\_\+m$^\wedge$\{-\/1\}D\+\_\+n\{B\}D\+\_\+n\+D\+\_\+m$^\wedge$\{-\/1\}S , S\+S$^\wedge$T = D\+\_\+m (4)\$\$ They also perform a variable substitution, which reformulates a high-\/dimensional pixel-\/space optimization problem in terms of the lower-\/dimensional bilateral-\/space vertices\+: \$\$x = S$^\wedge$\+Ty (5)\$\$ Where y is a small vector of values for each bilateral-\/space vertex, while x is a large vector of values for each pixel. With these tools we can not only reformulate our pixel-\/space loss function in Eq 1 in bilateral-\/space, but we can rewrite that bilateral-\/space loss function in a quadratic form\+: \$\$minimize\{1\}\{2\}y$^\wedge$\+T\+Ay -\/ b$^\wedge$\+Ty + c (6)\$\$ \$\$A = (D\+\_\+m -\/ D\+\_\+n\{B\}D\+\_\+n) + diag(S c)\$\$ \$\$b = S( c   t)\$\$ \$\$c = \{1\}\{2\}( c   t)$^\wedge$T t\$\$ where \$\$ is the Hadamard product. {\bfseries A} derivation of this reformulation can be found in the supplement. While the optimization problem in Equation 1 is intractably expensive to solve naively, in this bilateral-\/space formulation optimization can be performed quickly. Minimizing that quadratic form is equivalent to solving a sparse linear system\+: \$\$\+Ay = b (7)\$\$ We can produce a pixel-\/space solution x̂ by simply slicing the solution to that linear system\+: \$\$\{x\} = S$^\wedge$T(A$^\wedge$\{-\/1\}b)  (8)\$\$ With this we can describe our algorithm, which we will refer to as the “bilateral solver.\+” The input to the solver is a reference R\+GB image, a target image that contains noisy observed quantities which we wish to improve, and a confidence image. We construct a simplified bilateral grid from the reference image, which is bistochastized as in \mbox{[}2\mbox{]} (see the supplement for details), and with that we construct the A matrix and b vector described in Equation 6 which are used to solve the linear system in Equation 8 to produce an output image. If we have multiple target images (with the same reference and confidence images) then we can construct a larger linear system in which b has many columns, and solve for each channel simultaneously using the same A matrix. In this many-\/target case, if b is low rank then that property can be exploited to accelerate optimization, as we show in the supplement.
+
+\subsubsection*{Implementation}
+
+
+\begin{DoxyItemize}
+\item {\bfseries Splat+\+Blur+\+Slice Procedure}  The two bilateral representations we use in this project, here shown filtering a toy one-\/dimensional grayscale image of a step-\/edge. This toy image corresponds to a 2D space visualized here (x = pixel location, y = pixel value) while in the paper we use R\+GB images, which corresponds to a 5D space (X\+Y\+R\+GB). The lattice (Fig 2a) uses barycen-\/tric interpolation to map pixels to vertices and requires d+1 blurring operations, where d is the dimensionality of the space. The simplified bilateral grid (Fig 2b) uses nearest-\/neighbor interpolation and requires d blurring operations which are summed rather than done in sequence. The grid is cheaper to construct and to use than the lattice, but the use of hard assignments means that the filtered output often has blocky piecewise-\/constant artifacts.
+\item {\bfseries Diagrammatize} 
+\begin{DoxyCode}
+1 st=>start: Start
+2 e=>end
+3 
+4 inr=>operation: Imput reference image
+5 int=>operation: Imput target image
+6 bg=>operation: construct BilateralGrid
+7 sl=>operation: construct SliceMatrix
+8 bl=>operation: construct BlurMatrix
+9 A1=>operation: construct AMatrix step1
+10 A2=>operation: construct AMatrix step2
+11 cg=>operation: execute ICCG
+12 out=>operation: output the resolt
+13 
+14 
+15 st->inr->bg->sl->bl->A1->int->A2->cg->out->e
+\end{DoxyCode}
+
+\end{DoxyItemize}
+
+\#\#\#\+Reference 
+\begin{DoxyCode}
+1 article\{BarronPoole2016,
+2 author = \{Jonathan T Barron and Ben Poole\},
+3 title = \{The Fast Bilateral Solver\},
+4 journal = \{ECCV\},
+5 year = \{2016\},
+6 \}
+7 @article\{Barron2015A,
+8 author = \{Jonathan T Barron and Andrew Adams and YiChang Shih and Carlos Hern\(\backslash\)'andez\},
+9 title = \{Fast Bilateral-Space Stereo for Synthetic Defocus\},
+10 journal = \{CVPR\},
+11 year = \{2015\},
+12 \}
+13 @article\{Adams2010,
+14 author = \{Andrew Adams  Jongmin Baek    Abe Davis\},
+15 title = \{Fast High-Dimensional Filtering Using the Permutohedral Lattice\},
+16 journal = \{Eurographics\},
+17 year = \{2010\},
+18 \}
+\end{DoxyCode}
+ 
+
+ \subsection*{Installation Instructions}
+
+\subsubsection*{Build Open\+CV}
+
+This is just a suggestion on how to build Open\+CV 3.\+1. There a plenty of options. Also some packages might be optional. 
+\begin{DoxyCode}
+1 sudo apt-get install libgtk2.0-dev pkg-config libavcodec-dev libavformat-dev libswscale-dev python-dev
+       python-numpy libtbb2 libtbb-dev libjpeg-dev libpng-dev libtiff-dev libjasper-dev libdc1394-22-dev
+2 git clone https://github.com/Itseez/opencv.git
+3 cd opencv
+4 mkdir build
+5 cd build
+6 cmake -D CMAKE\_BUILD\_TYPE=RELEASE -D WITH\_CUDA=OFF ..
+7 make -j
+8 sudo make install
+\end{DoxyCode}
+
+
+\#\#\#\+Build The\+\_\+\+Bilateral\+\_\+\+Solver 
+\begin{DoxyCode}
+1 git clone https://github.com/THUKey/The\_Bilateral\_Solver.git
+2 cd The\_Bilateral\_Solver/build
+3 cmake ..
+4 make
+\end{DoxyCode}
+ This will create three executable demos, that you can run as shown in below.
+
+\paragraph*{Depthsuperresolution}
+
+ the target. 
+\begin{DoxyCode}
+1 ./Depthsuperres
+\end{DoxyCode}
+  This result(use bilateral solver) is far from the optimal performance, which means there are some extra work to do, such as to patiently adjustment parameters and to optimize the implementation. 
+\begin{DoxyCode}
+1 ./Latticefilter reference.png target.png
+\end{DoxyCode}
+  This result(use permutohedral\+\_\+lattice) is quite nice. \#\#\#\#\+Colorization 
+\begin{DoxyCode}
+1 ./Colorize rose1.webp
+\end{DoxyCode}
+  draw image, then press \char`\"{}\+E\+S\+C\char`\"{} twice to launch the colorization procession.  colorized image. you could change the {\bfseries rose1.\+webp} to your own image. Thanks for \href{https://github.com/timuda/colorization_s_demo}{\tt timuda}, his colorization implementation help me a lot.
+
+\#\#\#\#\+Permutohedral\+Lattice\+Filter 
+\begin{DoxyCode}
+1 ./Latticefilter flower8.jpg
+\end{DoxyCode}
+ In Barron\textquotesingle{}s another paper {\itshape Fast Bilateral-\/\+Space Stereo for Synthetic Defocus}, both bileteral\+\_\+solver and permutohedral lattice are used to do experiment, and the result shows that bilateral\+\_\+solver is faster than permutohedral lattice technique, but the permutohedral is more accurate than the bilateral\+\_\+solver. In other words, this is the tradeoff between time and accuracy. Actually, both two techniques\textquotesingle{} tradeoff can be worthwhile in appropriate condition. So I want to implement both two technique for more widely use.  filter\+\_\+output.  filter\+\_\+input.
+
+
+
+ \subsection*{Basic Usage}
+
+\#\#\# Depthsuperresolution\+: 
+\begin{DoxyCode}
+1 BilateralGrid BiGr(mat\_R);
+2 BiGr.Depthsuperresolution(mat\_R,mat\_T,sigma\_spatial,sigma\_luma,sigma\_chroma);
+\end{DoxyCode}
+ Firstly, we use the reference image mat\+\_\+R construct a \hyperlink{classBilateralGrid}{Bilateral\+Grid}, the we launch a depthsuperresolution to optimize the target image mat\+\_\+T. The parameter sigma\+\_\+spatial is the Gaussian kernal for coordinate x y, similarly , the sigma\+\_\+luma correspond luma(\+Y) and the sigma\+\_\+chroma correspond chroma(\+U\+V). It need to be noted that he mat\+\_\+R should be covert to Y\+UV form before construct the bilateralgrid.
+
+\#\#\#\+Colorization 
+\begin{DoxyCode}
+1 InputImage InImg(mat\_in);
+2 mat\_bg\_in = InImg.get\_Image(IMG\_YUV);
+3 InImg.draw\_Image();
+4 mat\_bg\_draw\_in = InImg.get\_Image(IMG\_DRAWYUV);
+5 BilateralGrid BiGr(mat\_bg\_in);
+6 BiGr.Colorization(mat\_in,mat\_bg\_draw\_in);
+\end{DoxyCode}
+ Similar to above, we need to covert the imput image mat\+\_\+in(gray image for colorization) to Y\+UV form, then draw the gray image. when the drawing finished, press \char`\"{}\+E\+S\+C\char`\"{} twice to launch the colorization procession. the result will be save in specified folder. \#\#\#\+Permutohedral\+Lattce 
+\begin{DoxyCode}
+1 bilateral(im,spatialSigma,colorSigma);
+\end{DoxyCode}
+ Similar to \hyperlink{classBilateralGrid}{Bilateral\+Grid}, the Permutohedral\+Lattce also need spatial parameter and the color parameter to specified the Gaussian kernel.
+
+
+
+ \subsection*{Schedule}
+
+\tabulinesep=1mm
+\begin{longtabu} spread 0pt [c]{*3{|X[-1]}|}
+\hline
+\rowcolor{\tableheadbgcolor}{\bf Item }&\PBS\raggedleft {\bf State }&\PBS\centering {\bf Remark  }\\\cline{1-3}
+\endfirsthead
+\hline
+\endfoot
+\hline
+\rowcolor{\tableheadbgcolor}{\bf Item }&\PBS\raggedleft {\bf State }&\PBS\centering {\bf Remark  }\\\cline{1-3}
+\endhead
+C++ code of the core algorithm &\PBS\raggedleft Completed &\PBS\centering also python \\\cline{1-3}
+Depthsuperres module &\PBS\raggedleft Completed &\PBS\centering need optimize \\\cline{1-3}
+Colorization module &\PBS\raggedleft Completed &\PBS\centering choose I\+C\+CG or others \\\cline{1-3}
+Permutohedral\+Lattice\+Filter &\PBS\raggedleft Completed &\PBS\centering increse Compatibility \\\cline{1-3}
+Semantic Segmentation optimizer &\PBS\raggedleft Ongoing &\PBS\centering try apply in C\+NN \\\cline{1-3}
+Contribute project to Open\+CV &\PBS\raggedleft Ongoing &\PBS\centering coding testfile \\\cline{1-3}
+Detail Documentation &\PBS\raggedleft Ongoing &\PBS\centering writing toturial \\\cline{1-3}
+\end{longtabu}
