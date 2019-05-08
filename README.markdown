@@ -32,27 +32,6 @@ st->inr->bg->sl->bl->A1->int->A2->cg->out->e
 ```
 
 
-### Reference
-```
-article{BarronPoole2016,
-author = {Jonathan T Barron and Ben Poole},
-title = {The Fast Bilateral Solver},
-journal = {ECCV},
-year = {2016},
-}
-@article{Barron2015A,
-author = {Jonathan T Barron and Andrew Adams and YiChang Shih and Carlos Hern\'andez},
-title = {Fast Bilateral-Space Stereo for Synthetic Defocus},
-journal = {CVPR},
-year = {2015},
-}
-@article{Adams2010,
-author = {Andrew Adams	Jongmin Baek	Abe Davis},
-title = {Fast High-Dimensional Filtering Using the Permutohedral Lattice},
-journal = {Eurographics},
-year = {2010},
-}
-```
 __________
 ## Installation Instructions
 ### Build OpenCV
@@ -150,3 +129,27 @@ __________
 |Semantic Segmentation optimizer |   Ongoing |  try apply in CNN
 |Contribute project to OpenCV   |    Ongoing | coding testfile  |
 |Detail Documentation  | Ongoing | writing toturial   |
+
+
+----
+## Reference
+```
+article{BarronPoole2016,
+author = {Jonathan T Barron and Ben Poole},
+title = {The Fast Bilateral Solver},
+journal = {ECCV},
+year = {2016},
+}
+@article{Barron2015A,
+author = {Jonathan T Barron and Andrew Adams and YiChang Shih and Carlos Hern\'andez},
+title = {Fast Bilateral-Space Stereo for Synthetic Defocus},
+journal = {CVPR},
+year = {2015},
+}
+@article{Adams2010,
+author = {Andrew Adams	Jongmin Baek	Abe Davis},
+title = {Fast High-Dimensional Filtering Using the Permutohedral Lattice},
+journal = {Eurographics},
+year = {2010},
+}
+```
