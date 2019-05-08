@@ -1,17 +1,11 @@
 
-#The Fast Bilateral Solver (**Still in development**)
+# The Fast Bilateral Solver (**Still in development**)
 
 **The Bilater Solver** is a novel algorithm for edge-aware smoothing that combines the flexibility and speed of simple filtering approaches with the accuracy of domain-specific optimization algorithms. This algorithm was presented by Jonathan T. Barron and Ben Poole as an ECCV2016 oral and best paper nominee. Algorithm details and applications can be found in https://arxiv.org/pdf/1511.03296.pdf .
 
 
-______________________
-
-[TOC]
-
-
-______________________
-##Introduce
-###Algorithm
+## Introduce
+### Algorithm
 We begin by presenting the objective and optimization techniques that make up our bilateral solver. Let us assume that we have some per-pixel input quantities **t** (the “target” value, see Figure 1a) and some per-pixel confidence of those quantities **c** (Figure 1c), both represented as vectorized images. Let us also assume that we have some “reference” image (Figure 1d), which is a normal RGB image. Our goal is to recover an “output” vector x (Figure 1b), which will resemble the input target where the confidence is large while being smooth and tightly aligned to edges in the reference image. We will accomplish this by constructing an optimization problem consisting of an image-dependent smoothness term that encourages **x** to be bilateral-smooth, and a data-fidelity term that minimizes the squared residual between x and the target **t** weighted by our confidence **c**:
 $$minimize\frac{\lambda}{2}\sum_{i,j}\widehat{W}_{i,j}(x_i-x_j)^{2}+\sum_{i}(c_i-t_i)^{2}  \quad  (1)$$
 The smoothness term in this optimization problem is built around an affinity matrix Ŵ , which is a bistochastized version of a bilateral affinity matrix **W** . Each element of the bilateral affinity matrix $W_{i,j}$ reflects the affinity between pixels i and j in the reference image in the YUV colorspace:
@@ -34,7 +28,7 @@ We can produce a pixel-space solution x̂ by simply slicing the solution to that
 $$\widehat{x} = S^T(A^{-1}b) \quad (8)$$
 With this we can describe our algorithm, which we will refer to as the “bilateral solver.” The input to the solver is a reference RGB image, a target image that contains noisy observed quantities which we wish to improve, and a confidence image. We construct a simplified bilateral grid from the reference image, which is bistochastized as in [2] (see the supplement for details), and with that we construct the A matrix and b vector described in Equation 6 which are used to solve the linear system in Equation 8 to produce an output image. If we have multiple target images (with the same reference and confidence images) then we can construct a larger linear system in which b has many columns, and solve for each channel simultaneously using the same A matrix. In this many-target case, if b is low rank then that property can be exploited to accelerate optimization, as we show in the supplement.
 
-###Implementation
+### Implementation
 - **Splat+Blur+Slice Procedure**
 ![SBS](https://raw.githubusercontent.com/THUKey/The_Bilateral_Solver/4cff9dabc9ad48d047f66cc8d68c733a1e403688/build/SBS.png)
 The two bilateral representations we use in this project, here shown filtering a toy one-dimensional grayscale image of a step-edge. This toy image corresponds to a 2D space visualized here (x = pixel location, y = pixel value) while in the paper we use RGB images, which corresponds to a 5D space (XYRGB). The lattice (Fig 2a) uses barycen-tric interpolation to map pixels to vertices and requires d+1 blurring operations, where d is the dimensionality of the space. The simplified bilateral grid (Fig 2b) uses nearest-neighbor interpolation and requires d blurring operations which are summed rather than done in sequence. The grid is cheaper to construct and to use than the lattice, but the use of hard assignments means that the filtered output often has blocky piecewise-constant artifacts.
@@ -61,7 +55,7 @@ st->inr->bg->sl->bl->A1->int->A2->cg->out->e
 ```
 
 
-###Reference
+### Reference
 ```
 article{BarronPoole2016,
 author = {Jonathan T Barron and Ben Poole},
@@ -83,7 +77,7 @@ year = {2010},
 }
 ```
 __________
-##Installation Instructions
+## Installation Instructions
 ### Build OpenCV
 This is just a suggestion on how to build OpenCV 3.1. There a plenty of options. Also some packages might be optional.
 ```
@@ -97,7 +91,7 @@ make -j
 sudo make install
 ```
 
-###Build The_Bilateral_Solver
+### Build The_Bilateral_Solver
 ```
 git clone https://github.com/THUKey/The_Bilateral_Solver.git
 cd The_Bilateral_Solver/build
@@ -106,7 +100,7 @@ make
 ```
 This will create three executable demos, that you can run as shown in below.
 
-####Depthsuperresolution
+#### Depthsuperresolution
 
 ![target](https://raw.githubusercontent.com/THUKey/The_Bilateral_Solver/master/build/target.png)
 the target.
@@ -120,7 +114,7 @@ This result(use bilateral solver) is far from the optimal performance, which mea
 ```
  ![enter image description here](https://raw.githubusercontent.com/THUKey/The_Bilateral_Solver/master/build/lattice_output.png)
  This result(use permutohedral_lattice) is quite nice.
-####Colorization
+#### Colorization
 ```
 ./Colorize rose1.webp
 ```
@@ -130,7 +124,7 @@ draw image, then press "ESC" twice to launch the colorization procession.
 colorized image.
 you could change the **rose1.webp** to your own image. Thanks for [timuda](https://github.com/timuda/colorization_s_demo), his colorization implementation help me a lot.
 
-####PermutohedralLatticeFilter
+#### PermutohedralLatticeFilter
 ```
 ./Latticefilter flower8.jpg
 ```
@@ -142,7 +136,7 @@ filter_input.
 
 
 __________
-##Basic Usage
+## Basic Usage
 ### Depthsuperresolution:
 ```
 	BilateralGrid BiGr(mat_R);
@@ -150,7 +144,7 @@ __________
 ```
 Firstly, we use the reference image mat_R construct a BilateralGrid, the we launch a depthsuperresolution to optimize the target image mat_T. The parameter sigma_spatial is the Gaussian kernal for coordinate x y, similarly , the sigma_luma correspond luma(Y) and the sigma_chroma correspond chroma(UV). It need to be noted that he mat_R should be covert to YUV form before construct the bilateralgrid.
 
-###Colorization
+### Colorization
 ```
 	InputImage InImg(mat_in);
 	mat_bg_in = InImg.get_Image(IMG_YUV);
@@ -161,7 +155,7 @@ Firstly, we use the reference image mat_R construct a BilateralGrid, the we laun
 
 ```
 Similar to above, we need to covert the imput image mat_in(gray image for colorization) to YUV form, then draw the gray image. when the drawing finished, press "ESC" twice to launch the colorization procession. the result will be save in specified folder.
-###PermutohedralLattce
+### PermutohedralLattce
 ```
 	bilateral(im,spatialSigma,colorSigma);
 ```
@@ -169,7 +163,7 @@ Similar to BilateralGrid, the PermutohedralLattce also need spatial parameter an
 
 
 __________
-##Schedule
+## Schedule
 | Item      |   State  |   Remark|
 | :-------- | --------:| :--: |
 |C++ code of the core algorithm   | Completed | also python   |
