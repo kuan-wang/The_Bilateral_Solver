@@ -1,8 +1,9 @@
 
-# The Fast Bilateral Solver (**Still in development**)
+# The Fast Bilateral Solver (**Contributed in OpenCV**)
 
-**The Bilater Solver** is a novel algorithm for edge-aware smoothing that combines the flexibility and speed of simple filtering approaches with the accuracy of domain-specific optimization algorithms. This algorithm was presented by Jonathan T. Barron and Ben Poole as an ECCV2016 oral and best paper nominee. Algorithm details and applications can be found in https://arxiv.org/pdf/1511.03296.pdf .
-
+**The Bilater Solver** is a novel algorithm for edge-aware smoothing that combines the flexibility and speed of simple filtering approaches with the accuracy of domain-specific optimization algorithms. This algorithm was presented by Jonathan T. Barron and Ben Poole as an ECCV2016 oral and best paper nominee. Algorithm details and applications can be found in https://arxiv.org/pdf/1511.03296.pdf.
+[**New!**] This repo is the draft codes for my [GSOC2017](https://summerofcode.withgoogle.com/archive/2017/projects/6379759588081664/) (google summer of code) project. The [opencv_contrib](https://github.com/kuan-wang/opencv_contrib) branch I [pull request](https://github.com/opencv/opencv_contrib/pull/1317) to OpenCV was not successfully [merged](https://github.com/opencv/opencv_contrib/pull/1819) in master after GSOC2017 and I've no time to fix the issues. Fortunately and thankfully, last year this project has been contributed to opencv as a file [fbs_filter.cpp](https://github.com/opencv/opencv_contrib/blob/master/modules/ximgproc/src/fbs_filter.cpp) in ximgproc of opencv_contrib with the [help](https://github.com/opencv/opencv_contrib/pull/1819) of [berak](https://github.com/berak), [Alexander Alekhin](https://github.com/alalek) and [Jukka Komulainen](https://github.com/ytyytyyt). Really thanks!
+If you want to use the cpp version of fast bilateral solver, just compile the opencv with opencv_contrib. And This repo has some interesting demos you can play.
 
 ## Introduce
 ### Algorithm
